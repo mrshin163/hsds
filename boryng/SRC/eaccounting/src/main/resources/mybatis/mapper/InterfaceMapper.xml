@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="InterfaceMapper">
+
+	<parameterMap type="hashmap" id="paramMap">
+		<parameter property="cnt" mode="OUT" jdbcType="INTEGER" javaType="long"/>
+	</parameterMap>
+	
+	<select id="ifAccount2Cd" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_ACCOUNT2_CD(?)}
+	</select>
+	
+	<select id="ifAccountFav" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_ACCOUNT_FAV(?)}
+	</select>
+	
+	<select id="ifCard" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_CARD(?)}
+	</select>
+	
+	<select id="ifCustomer" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_CUSTOMER(?)}
+	</select>
+	
+	<select id="ifDept" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_DEPT(?)}
+	</select>
+	
+	<select id="ifDutyCd" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_DUTY_CD(?)}
+	</select>
+	
+	<select id="ifTitleAliasCd" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_TITLE_ALIAS_CD(?)}
+	</select>
+	
+	<select id="ifTitleCd" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call IF_TITLE_CD(?)}
+	</select>
+	
+	<select id="insertUserAuth" statementType="CALLABLE" parameterMap="paramMap" timeout="10000" >
+		{call INSERT_USER_AUTH(?)}
+	</select>
+	
+</mapper>

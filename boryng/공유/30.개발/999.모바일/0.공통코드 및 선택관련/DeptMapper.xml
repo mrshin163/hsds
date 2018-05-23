@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DeptMapper">
+	
+	<!-- 공통코드 조회 조건  -->
+	<sql id="deptListCnd">
+		<where>
+			<if test='deptName != null and deptName !="all"'>
+				DEPT_NM LIKE '%' || #{deptName} || '%'
+			</if>
+			<if test='deptCode != null and deptCode !="all"'>
+				DEPT_CD = #{deptCode}
+			</if>
+			AND USE_YN = 'Y'
+			AND DEL_YN = 'N'
+		</where>	
+	</sql>
+	
+	<!-- 부서 리스트 -->
+	<select id="selectDeptList" parameterType="deptVo" resultType="deptVo" >
+		SELECT 
+				COMPANY_CD			AS		copanyCode
+				,DEPT_CD             AS      deptCode
+				,LVL                 AS      lvl
+				,UP_DEPT_CD          AS      upDeptCode
+				,DEPT_NM             AS      deptName
+				,DESCRIPTION         AS      description
+				,DEPT_MGR_USER_ID    AS      detMgrUserId
+				,USE_YN              AS      useYn
+				,DEL_YN              AS      delYn
+				,IF_DATE             AS      ifDate
+				,REG_DTTM            AS      regDate
+				,REG_USER_ID         AS      regUserId
+				,UPD_DTTM            AS      updtDate
+				,UPD_USER_ID         AS      updtUserId
+				,DEPT_MGR_TP_CD      AS      deptMgrTpCode
+		FROM SYS_DEPT
+		<include refid="deptListCnd"/>
+	</select>
+
+
+</mapper>

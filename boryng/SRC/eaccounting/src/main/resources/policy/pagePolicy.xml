@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+	<!-- 페이징목록. -->
+	<policy name="default">
+		<prefix>	<!-- 페이징 구성시 앞에 붙일 태그. -->
+			<![CDATA[
+			<div style="width:100%;text-align:center">
+			 ]]>
+		</prefix>
+		<first>		<!-- 처음페이지 표시. -->
+			<![CDATA[
+			<a href="javascript:#script#">첫 리스트</a>
+			]]>
+		</first>
+		<pre>		<!-- 이전페이지 표시. -->
+			<![CDATA[
+			<a href="javascript:#script#">이전</a>
+			]]>
+		</pre>
+		<selected>	<!-- 현재페이지 표시. -->
+			<![CDATA[
+			<span>#pageNo#</span>
+			]]>
+		</selected>
+		<pageNo>	<!-- 페이지번호 표시. -->
+			<![CDATA[
+			<a href="javascript:#script#" class="page"><span>#pageNo#</span></a>
+			]]>
+		</pageNo>
+		<next>		<!-- 다음페이지 표시. -->
+			<![CDATA[
+			<a href="javascript:#script#">다음 리스트</a>
+			]]>
+		</next>
+		<last>		<!-- 마지막 페이지표시. -->
+			<![CDATA[
+			<a href="javascript:#script#">마지막 리스트</a>
+			]]>
+		</last>
+		<suffix>	<!-- 페이지 구성시 뒤에 붙일 태그. -->
+			<![CDATA[
+			</div>
+			]]>
+		</suffix>
+	</policy>
+
+	<!-- 이전다음페이징. -->
+	<policy name="preNext" type="twoButton">
+		<prefix>	<!-- 페이징 구성시 앞에 붙일 태그. -->
+			<![CDATA[
+			<div class="a_center">
+			 ]]>
+		</prefix>
+		<pre>		<!-- 이전페이지 표시. -->
+			<![CDATA[
+			<a href="javascript:#script#"><<이전</a>
+			]]>
+		</pre>
+		<next>		<!-- 다음페이지 표시. -->
+			<![CDATA[
+			<a href="javascript:#script#">다음>></a>
+			]]>
+		</next>
+		<suffix>	<!-- 페이지 구성시 뒤에 붙일 태그. -->
+			<![CDATA[
+			</div>
+			]]>
+		</suffix>
+	</policy>
+</root>

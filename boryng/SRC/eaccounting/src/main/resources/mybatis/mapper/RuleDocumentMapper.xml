@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="RuleDocumentMapper">
+	<select id="selectRuleDocumentList" parameterType="ruleDocumentVo" resultType="java.util.HashMap" >
+	/** 공정경쟁규약 품의하는 사람 정보와 현재월 기준으로 검색 디폴트 - 한번이라도 품의서에 사용된 공정경쟁규약 문서는 리스트에서 뺀다 **/
+SELECT			MUNSEO_NO 				AS munseoNo
+				, MUNSEO_DATE        	As munseoDate
+				, GEORAE_NAME        	AS georaeName
+				, PUMMOK            	AS pummok
+				, JANGSO            	AS jangso
+				, AMOUNT            	AS amount
+				, SABUN            		AS sabun
+				, NVL(USED.FLAG,'N')  	AS flag
+FROM V_EACCOUNTING_MUNSEO Q,
+   ( /** 사용된 공정경쟁규약 목록**/
+		SELECT FTR_CD, 'Y' AS FLAG
+        	FROM V_EACCOUNTING_MUNSEO M, EAC_APPROVAL A, EAC_APPROVAL_ITEM AI
+        WHERE 1=1
+          AND A.COMPANY_CD = AI.COMPANY_CD
+          AND A.APPROVAL_ID = AI.APPROVAL_ID
+          AND A.COMPANY_CD = 'PHARM'
+          AND A.DEL_YN = 'N'
+          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR')
+          AND AI.FTR_CD = M.MUNSEO_NO
+   ) USED
+WHERE MUNSEO_DATE LIKE #{month} || '%' 
+  AND Q.SABUN = #{sabun}
+  AND Q.MUNSEO_NO = USED.FTR_CD (+) 
+ORDER BY FLAG ASC, Q.MUNSEO_DATE DESC    
+				
+	</select>
+
+	<select id="getRuleDocument" parameterType="ruleDocumentVo" resultType="ruleDocumentVo">
+		SELECT
+			/** [RuleDocumentMapper.getRuleDocument] [정산서 - 공정 경쟁 규약 조회] */
+				MUNSEO_NO												AS munseoNo,
+				MUNSEO_DATE												AS munseoDate,
+				GEORAE_NAME												AS georaeName,
+				PUMMOK													AS pummok,
+				JANGSO													AS jangso,
+				AMOUNT													AS amount,
+				SABUN													AS sabun,
+				(SELECT USER_NM FROM V_SYS_USER WHERE USER_ID = SABUN)	AS damdangName
+					FROM
+						V_EACCOUNTING_MUNSEO
+							WHERE 1 = 1
+								AND MUNSEO_NO = #{munseoNo}
+	</select>
+
+</mapper>

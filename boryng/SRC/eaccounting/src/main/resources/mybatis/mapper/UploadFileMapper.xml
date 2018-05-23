@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UploadFileMapper">
+
+	<!-- 첨부파일 리스트 -->
+	<select id="getFileList" resultType="attachFileVo" parameterType="attachFileVo">
+		SELECT	
+			   COMPANY_CD 			AS 	companyCode
+			 , SEQ        			AS 	seq
+			 , ATTACH_ID			AS	attachId
+			 , PFILE_NM				AS	pFileName
+			 , LFILE_NM				AS	lFileName
+			 , FILE_PATH			AS	filePath
+			 , EXT					AS	ext
+			 , FILE_SIZE			AS	fileSize				
+		  FROM SYS_ATTACH_FILE
+		 WHERE COMPANY_CD			= #{companyCode}
+		   AND ATTACH_ID 			= #{attachId}
+		   <if test="seq!=null and seq!=''">
+		   	AND SEQ					= #{seq}
+		   </if>
+		   AND USE_YN 				= 'Y'
+		   AND DEL_YN 				= 'N'
+	</select>
+	
+	<select id="getAttachId" resultType="String">
+		SELECT 'ATT'||TO_CHAR(SYSDATE,'YYYYMMDD')||LPAD(SEQ_ATT.NEXTVAL,5,'0')
+		  FROM DUAL
+	</select>
+	
+	<!-- 첨부파일마스터 조회 -->
+	<select id="getAttachList" resultType="attachVo" parameterType="attachVo">
+		SELECT	
+			   COMPANY_CD 			AS 	companyCode
+			 , ATTACH_ID			AS	attachId		
+		  FROM SYS_ATTACH
+		 WHERE COMPANY_CD			= #{companyCode}
+		   AND ATTACH_ID 			= #{attachId}
+	</select>
+
+	<insert id="insertAttach" parameterType="attachVo">
+		INSERT 
+		  INTO SYS_ATTACH
+		  	 ( COMPANY_CD
+			 , ATTACH_ID
+			 , BIZ_TP_CD
+			 , REG_USER_ID
+			 )
+		VALUES 
+			 ( #{companyCode}
+			 , #{attachId}
+			 , #{bizTpCode}
+			 , #{regUserId}
+			 )
+	</insert>
+	
+	<insert id="insertAttachFile" parameterType="attachFileVo">
+		INSERT 
+		  INTO SYS_ATTACH_FILE
+		  	 ( COMPANY_CD
+			 , ATTACH_ID
+			 , SEQ
+			 , LFILE_NM
+			 , PFILE_NM
+			 , FILE_PATH
+			 , EXT
+			 , FILE_SIZE
+			 , REG_USER_ID
+			 )
+		VALUES
+			 ( #{companyCode}
+			 , #{attachId}
+			 , (CASE WHEN ( SELECT	MAX(TO_NUMBER(SEQ))+1 
+							  FROM	SYS_ATTACH_FILE 
+							 WHERE	COMPANY_CD	=	#{companyCode}
+							   AND	ATTACH_ID	=	#{attachId}
+						  ) IS NULL THEN '1'
+							   
+					 ELSE TO_CHAR((SELECT MAX(TO_NUMBER(SEQ))+1 
+							  		 FROM SYS_ATTACH_FILE 
+							 		WHERE COMPANY_CD	=	#{companyCode}
+							   		  AND ATTACH_ID		=	#{attachId})
+							   	 )
+				END
+			   )
+			 , #{lFileName}
+			 , #{pFileName}
+			 , #{filePath}
+			 , #{ext}
+			 , #{fileSize}
+			 , #{regUserId}
+			 )
+	</insert>
+	
+	<insert id="updateAttach" parameterType="attachVo">
+		UPDATE SYS_ATTACH
+		   SET BIZ_KEY 				= #{bizKey}
+		 WHERE COMPANY_CD			= #{companyCode}
+		   AND ATTACH_ID 			= #{attachId}
+	</insert>
+	
+	<update id="deleteAttach" parameterType="attachVo">
+		UPDATE SYS_ATTACH
+		   SET DEL_YN     		= 'Y'
+		   	 , UPD_DTTM 		= TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID		= #{updUserId}
+		 WHERE COMPANY_CD 		= #{companyCode}
+		   AND ATTACH_ID		= #{attachId}
+	</update>
+	
+	<update id="deleteAttachFile" parameterType="attachFileVo">
+		UPDATE SYS_ATTACH_FILE
+		   SET DEL_YN     		= 'Y'
+		   	 , UPD_DTTM 		= TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		   	 , UPD_USER_ID		= #{updUserId}
+		 WHERE	COMPANY_CD 		= #{companyCode}
+		   AND	ATTACH_ID		= #{attachId}
+		   AND	SEQ        		= #{seq}
+	</update>
+	
+	
+</mapper>

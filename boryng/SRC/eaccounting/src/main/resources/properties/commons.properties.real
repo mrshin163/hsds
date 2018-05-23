@@ -1,0 +1,5 @@
+running.mode=REAL
+
+file.uploadPolicy.path=\\\\172.16.1.89\\vol1\\eacc_upload\\
+
+test_email_recipient_address=

@@ -1,0 +1,1093 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ApprovalRqMapper">
+
+	<!-- 미상신 내역 결재 리스트 -->
+	<select id="selectApprovalUpList" parameterType="java.util.Map" resultType="java.util.HashMap">
+		<if test='pagingYn == "Y"'>
+			<include refid="common.prefixOra" />
+		</if>
+		
+		SELECT * FROM (
+		
+		<include refid="Approval11" />
+		UNION ALL
+		<include refid="Approval12" />
+		UNION ALL
+		<include refid="Approval13" />
+		UNION ALL
+		<include refid="Approval14" />
+		)
+		ORDER BY AUTH_DATE DESC
+		<if test='pagingYn == "Y"'>
+			<include refid="common.suffixOra" />
+		</if>
+		
+	</select>
+
+	<!-- 미상신 내역 결재 리스트 COUNT -->
+	<select id="approvalUpCount" resultType="long">
+		SELECT COUNT(*) TOTAL_ROW FROM(
+		<include refid="Approval11" />
+		UNION ALL
+		<include refid="Approval12" />
+		UNION ALL
+		<include refid="Approval13" />
+		UNION ALL
+		<include refid="Approval14" />
+		)
+	</select>
+	
+	<select id="getApprovalId" resultType="String">
+		SELECT 'APP' || TO_CHAR(SYSDATE, 'YYYYMMDD') ||
+			LPAD(SEQ_APP.NEXTVAL, 5, '0') as approvalId
+			FROM DUAL
+	</select>
+
+	<insert id="insertApproval" parameterType="approvalRqInfoVo">
+	
+	INSERT INTO EAC_APPROVAL (COMPANY_CD,
+							  APPROVAL_ID,
+							  RQ_DATE,
+							  RQ_OPINION,
+							  APPROVAL_STATUS_CD,
+							  APPROVAL_DATE,
+							  ACCOUNT_CD,
+							  ACCOUNT_NM,
+							  BUDGET_DEPT_CD,
+							  BUDGET_DEPT_NM,
+							  RQ_USER_ID,
+							  RQ_USER_NM,
+							  RQ_DEPT_CD,
+							  RQ_DEPT_NM,
+							  RQ_TITLE_CD,
+							  RQ_TITLE_NM,
+							  RQ_DUTY_CD,
+							  RQ_DUTY_NM,
+							  RRQ_USER_ID,
+							  RRQ_USER_NM,
+							  RRQ_DEPT_CD,
+							  RRQ_DEPT_NM,
+							  RRQ_TITLE_CD,
+							  RRQ_TITLE_NM,
+							  RRQ_DUTY_CD,
+							  RRQ_DUTY_NM,
+							  CHANNEL_TP_CD,
+							  DEL_YN,
+							  REG_DTTM,
+							  REG_USER_ID,
+							  UPD_DTTM,
+							  UPD_USER_ID)
+   SELECT #{companyCode},
+		  #{approvalId}, -- 파라메터 : 발행된 품의서ID
+		  NULL,
+		  NULL,
+		  'T',
+		  NULL,
+		  NULL,
+		  NULL,
+		  NULL,
+		  NULL,
+		  REQ.USER_ID,
+		  REQ.USER_NM,
+		  REQ.DEPT_CD,
+		  REQ.DEPT_NM,
+		  REQ.TITLE_CD,
+		  REQ.TITLE_NM,
+		  REQ.DUTY_CD,
+		  REQ.DUTY_NM,
+		  REP.USER_ID,
+		  REP.USER_NM,
+		  REP.DEPT_CD,
+		  REP.DEPT_NM,
+		  REP.TITLE_CD,
+		  REP.TITLE_NM,
+		  REP.DUTY_CD,
+		  REP.DUTY_NM,
+		  'W',
+		  'N',
+		  TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS'),
+		  #{regUserId},												-- 세션 사용자ID
+		  NULL,
+		  NULL
+	 FROM V_SYS_USER REQ, -- 상신자 정보
+		  (SELECT COMPANY_CD, -- 대체자 정보
+				  USER_ID,
+				  USER_NM,
+				  DEPT_CD,
+				  DEPT_NM,
+				  TITLE_CD,
+				  TITLE_NM,
+				  DUTY_CD,
+				  DUTY_NM
+			 FROM V_SYS_USER
+			WHERE 1 = 1 AND COMPANY_CD = #{companyCode} AND USER_ID = #{nreqUserId} -- 파라메터 : NREQ_USER_ID
+																	  ) REP
+	WHERE	 1 = 1
+		  AND REQ.COMPANY_CD = REP.COMPANY_CD(+)
+		  AND REQ.COMPANY_CD = #{companyCode}
+		  AND REQ.USER_ID = #{ownerId}	
+	
+	
+
+	<!-- INSERT INTO EAC_APPROVAL (
+		COMPANY_CD,
+		APPROVAL_ID,
+		APPROVAL_STATUS_CD,
+		RQ_USER_ID,
+		RQ_USER_NM,
+		RQ_DEPT_CD,
+		RQ_DEPT_NM,
+		RQ_TITLE_CD,
+		RQ_TITLE_NM,
+		RQ_DUTY_CD,
+		RQ_DUTY_NM,
+		CHANNEL_TP_CD,
+		REG_USER_ID
+		)
+		VALUES(
+		#{companyCode},
+		#{approvalId},
+		#{approvalStatusCode},
+		#{rqUserId},
+		#{rqUserName},
+		#{rqDeptCode},
+		#{rqDeptName},
+		#{rqTitleCode},
+		#{rqTitleName},
+		#{rqDutyCode},
+		#{rqDutyName},
+		#{channelTypeCode},
+		#{regUserId}
+		)-->
+	</insert>
+	
+	<insert id="insertApprovalItem" parameterType="approvalRqInfoVo">
+		INSERT INTO
+		EAC_APPROVAL_ITEM (
+		COMPANY_CD, APPROVAL_ID, SEQ,
+		S_APPROVAL_ID, S_APPROVAL_SEQ, CUSTOMER_CD,
+		CUSTOMER_NM, SAUP_NO, USER_ID,
+		USER_NM, ACCOUNT2_CD, ACCOUNT2_NM,
+		PRODUCT_CD, PRODUCT_NM, FTR_CD,
+		DETAILS, OPINION, CARD_OWNER_ID,
+		CARD_OWNER_NM, CARD_OWNER_DEPT_CD, CARD_OWNER_DEPT_NM,
+		CARD_OWNER_TITLE_CD, CARD_OWNER_TITLE_NM, CARD_OWNER_DUTY_CD,
+		CARD_OWNER_DUTY_NM, AP_GEORAE_CAND, CARD_NUM,
+		AUTH_DATE, AUTH_NUM, GEORAE_STAT,
+		REQUEST_AMOUNT, GEORAE_COLL, MERC_NAME,
+		SETT_DATE, OWNER_REG_NO, CARD_CODE,
+		CARD_NAME, USER_NAME, AUTH_TIME,
+		AQUI_DATE, GEORAE_CAND, AMT_AMOUNT,
+		VAT_AMOUNT, SER_AMOUNT, FRE_AMOUNT,
+		AMT_MD_AMOUNT, VAT_MD_AMOUNT, GEORAE_GUKGA,
+		FOR_AMOUNT, USD_AMOUNT, AQUI_RATE,
+		MERC_SAUP_NO, MERC_ADDR, MERC_REPR,
+		MERC_TEL, MERC_ZIP, MCC_NAME,
+		MCC_CODE, MCC_STAT, VAT_STAT,
+		CAN_DATE, ASK_SITE, SITE_DATE,
+		ASK_DATE, ASK_TIME, GONGJE_NO_CHK,
+		CREATEDATE, CREATETIME, SEND_YN,
+		AQUI_TIME, CONVERSION_FEE, ORG_COLL,
+		CARD_KIND, SETT_DAY, SETT_BANKCODE,
+		SETT_ACCO, JUMIN_NO, FINANCE_DATE,
+		FINANCE_SEQ, FINANCE_NO, JUNPYO_INS_DATE, JUNPYO_ST_CD,
+		REG_DTTM, REG_USER_ID, UPD_DTTM,
+		UPD_USER_ID)
+		SELECT
+		#{companyCode}
+		, #{approvalId}
+		, (SELECT COUNT(*)+1 FROM EAC_APPROVAL_ITEM WHERE COMPANY_CD = #{companyCode} 
+		AND APPROVAL_ID = #{approvalId}) /* 품의내역 일련번호 */
+		, NULL /* S_APPROVAL_ID */
+		, NULL /* S_APPROVAL_SEQ */
+		, NULL /* CUSTOMER_CD */
+		, NULL /* CUSTOMER_NM */
+		, NULL /* SAUP_NO */
+		, #{ownerId} /* USER_ID */ -- 파라메터 : OWNER_ID
+		, (SELECT USER_NM FROM V_SYS_USER WHERE USER_ID = #{ownerId})
+		, NULL /* ACCOUNT2_CD */
+		, NULL /* ACCOUNT2_NM */
+		, NULL /* PRODUCT_CD */
+		, NULL /* PRODUCT_NM */
+		, NULL /* FTR_CD */
+		, NULL /* DETAILS */
+		, NULL /* OPINION */
+		, CU.CARD_OWNER_ID /* CARD_OWNER_ID */
+		, CU.CARD_OWNER_NM /* CARD_OWNER_NM */
+		, CU.CARD_OWNER_DEPT_CD /* CARD_OWNER_DEPT_CD */
+		, CU.CARD_OWNER_DEPT_NM /* CARD_OWNER_DEPT_NM */
+		, CU.CARD_OWNER_TITLE_CD /* CARD_OWNER_TITLE_CD */
+		, CU.CARD_OWNER_TITLE_NM /* CARD_OWNER_TITLE_NM */
+		, CU.CARD_OWNER_DUTY_CD /* CARD_OWNER_DUTY_CD */
+		, CU.CARD_OWNER_DUTY_NM /* CARD_OWNER_DUTY_NM */
+		, NULL /* AP_GEORAE_CAND */
+		, C.CARD_NUM /* CARD_NUM */
+		, C.AUTH_DATE /* AUTH_DATE */
+		, C.AUTH_NUM /* AUTH_NUM */
+		, C.GEORAE_STAT /* GEORAE_STAT */
+		, C.REQUEST_AMOUNT /* REQUEST_AMOUNT */
+		, C.GEORAE_COLL /* GEORAE_COLL */
+		, C.MERC_NAME /* MERC_NAME */
+		, C.SETT_DATE /* SETT_DATE */
+		, C.OWNER_REG_NO /* OWNER_REG_NO */
+		, C.CARD_CODE /* CARD_CODE */
+		, C.CARD_NAME /* CARD_NAME */
+		, C.USER_NAME /* USER_NAME */
+		, C.AUTH_TIME /* AUTH_TIME */
+		, C.AQUI_DATE /* AQUI_DATE */
+		, C.GEORAE_CAND /* GEORAE_CAND */
+		, C.AMT_AMOUNT /* AMT_AMOUNT */
+		, C.VAT_AMOUNT /* VAT_AMOUNT */
+		, C.SER_AMOUNT /* SER_AMOUNT */
+		, C.FRE_AMOUNT /* FRE_AMOUNT */
+		, C.AMT_MD_AMOUNT /* AMT_MD_AMOUNT */
+		, C.VAT_MD_AMOUNT /* VAT_MD_AMOUNT */
+		, C.GEORAE_GUKGA /* GEORAE_GUKGA */
+		, C.FOR_AMOUNT /* FOR_AMOUNT */
+		, C.USD_AMOUNT /* USD_AMOUNT */
+		, C.AQUI_RATE /* AQUI_RATE */
+		, C.MERC_SAUP_NO /* MERC_SAUP_NO */
+		, C.MERC_ADDR /* MERC_ADDR */
+		, C.MERC_REPR /* MERC_REPR */
+		, C.MERC_TEL /* MERC_TEL */
+		, C.MERC_ZIP /* MERC_ZIP */
+		, C.MCC_NAME /* MCC_NAME */
+		, C.MCC_CODE /* MCC_CODE */
+		, C.MCC_STAT /* MCC_STAT */
+		, C.VAT_STAT /* VAT_STAT */
+		, C.CAN_DATE /* CAN_DATE */
+		, C.ASK_SITE /* ASK_SITE */
+		, C.SITE_DATE /* SITE_DATE */
+		, C.ASK_DATE /* ASK_DATE */
+		, C.ASK_TIME /* ASK_TIME */
+		, C.GONGJE_NO_CHK /* GONGJE_NO_CHK */
+		, C.CREATEDATE /* CREATEDATE */
+		, C.CREATETIME /* CREATETIME */
+		, C.SEND_YN /* SEND_YN */
+		, C.AQUI_TIME /* AQUI_TIME */
+		, C.CONVERSION_FEE /* CONVERSION_FEE */
+		, C.ORG_COLL /* ORG_COLL */
+		, CI.CARD_KIND /* CARD_KIND */
+		, CI.SETT_DATE /* SETT_DAY */
+		, CI.SETT_BANKCODE /* SETT_BANKCODE */
+		, CI.SETT_ACCO /* SETT_ACCO */
+		, CI.JUMIN_NO /* JUMIN_NO */
+		, NULL /* FINANCE_DATE */
+		, NULL /* FINANCE_SEQ */
+		, NULL /* FINANCE_NO */
+		, NULL /* JUNPYO_INS_DATE */
+		, '0' /* JUNPYO_ST_CD */
+		, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS') /* REG_DTTM */
+		, #{regUserId} /* REG_USER_ID */ 
+		, NULL /* UPD_DTTM */
+		, NULL /* UPD_USER_ID */
+		FROM CARD_AQ_TMP C,
+		(
+		SELECT D.USER_ID AS CARD_OWNER_ID
+		, D.CARD_NO AS CARD_NO
+		, U.USER_NM AS CARD_OWNER_NM
+		, U.DEPT_CD AS CARD_OWNER_DEPT_CD
+		, U.DEPT_NM AS CARD_OWNER_DEPT_NM
+		, U.TITLE_CD AS CARD_OWNER_TITLE_CD
+		, U.TITLE_NM AS CARD_OWNER_TITLE_NM
+		, U.DUTY_CD AS CARD_OWNER_DUTY_CD
+		, U.DUTY_NM AS CARD_OWNER_DUTY_NM
+		FROM EAC_CARD D, V_SYS_USER U
+		WHERE 1 = 1
+		AND D.COMPANY_CD = #{companyCode}
+		AND D.USER_ID = U.USER_ID(+)
+		AND D.COMPANY_CD = U.COMPANY_CD
+		) CU,
+		CARD_INFO CI
+		WHERE 1=1
+		AND C.CARD_NUM = CU.CARD_NO(+)
+		AND C.CARD_NUM = CI.CARD_NUM(+)
+		AND C.CARD_NUM = #{cardNum}
+		AND C.AUTH_DATE = #{authDate}
+		AND C.AUTH_NUM = #{authNum}
+		AND C.GEORAE_STAT = #{georaeStat}
+		AND C.REQUEST_AMOUNT = #{requestAmount}
+		AND C.GEORAE_COLL = #{georaeColl}
+	</insert>
+	
+	<update id="updateApprovalRqItem" parameterType="approvalRqItemVo">
+		UPDATE EAC_APPROVAL_ITEM
+		SET 
+			SEQ                  =   #{seq}           		-- 품의서 일련번호
+			<if test="sApprovalId != null">
+			,S_APPROVAL_ID       =   #{sApprovalId}   		-- 심포지엄 요청 품의서 ID
+			</if>
+			<if test="sApprovalSeq != null">
+			,S_APPROVAL_SEQ      =   #{sApprovalSeq}  		-- 심포지엄 요청 품의 일련번호
+			</if>
+			,CUSTOMER_CD         =   #{customerCode}  		-- 거래처 코드
+			,CUSTOMER_NM         =   #{customerName}  		-- 거래처 이름
+			<if test="saupNo != null">
+			,SAUP_NO             =   #{saupNo}        		-- 거래처 사업자 번호
+			</if>
+			,ACCOUNT2_CD         =   #{account2Code}  		-- 세부계정코드
+			,ACCOUNT2_NM         =   #{account2Name}  		-- 세부계정명
+			,PRODUCT_CD          =   #{productCode}   		-- 제품코드
+			,PRODUCT_NM          =   #{productName}   		-- 제품명
+			,FTR_CD              =   #{ftrCode}       		-- 공정거래규약코드
+			,DETAILS             =   #{details}       		-- 사용내역
+			,OPINION             =   #{opinion}        		-- 의견
+			,MEET_REPORT         =   #{meetReport}    		-- 회의록
+			,SEMINAR_REPORT      =   #{seminarReport} 		-- 세미나 리포트
+			,UPD_DTTM			 =	 TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+			<if test="updtUserId != null">
+			,UPD_USER_ID		 =	 #{updtUserId}			-- 업데이트 ID
+			</if>
+		WHERE APPROVAL_ID = #{approvalId}
+	</update>     
+	
+	<update id="updateApprovalRq" parameterType="approvalRqInfoVo">
+		UPDATE 	EAC_APPROVAL 
+		SET 	RQ_DATE = SYSDATE, 
+				RQ_OPINION = #{rqOpinion},
+				ACCOUNT_CD = #{accountCode},
+				ACCOUNT_NM = #{accountName},
+				BUDGET_DEPT_CD = #{budgetDeptCode},
+				BUDGET_DEPT_NM = #{budgetDeptName},
+				APPROVAL_STATUS_CD = #{approvalStatusCode},
+				UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+				UPD_USER_ID = #{updtUserId}
+		WHERE 	1=1
+				AND APPROVAL_ID = #{approvalId}
+				AND COMPANY_CD = #{companyCode}
+	</update>  
+	
+	
+	<insert id="insertApprovalRqLine" parameterType="java.util.List">
+		INSERT ALL 
+			<foreach collection="list" item="element" index="index">
+			INTO EAC_APPROVAL_LINE(
+			COMPANY_CD
+			,APPROVAL_ID
+			,SEQ
+			,AP_USER_ID
+			,AP_USER_NM
+			,AP_DEPT_CD
+			,AP_DEPT_NM
+			,AP_TITLE_CD
+			,AP_TITLE_NM
+			,AP_DUTY_CD
+			,AP_DUTY_NM
+			,REG_DTTM
+			,REG_USER_ID
+			) 
+			VALUES (
+			#{element.companyCode}
+			,#{element.approvalId}
+			,#{element.seq}
+			,#{element.apUserId}
+			,#{element.apUserName}
+			,#{element.apDeptCode}
+			,#{element.apDeptName}
+			,#{element.apTitleCode}
+			,#{element.apTitleName}
+			,#{element.apDutyCode}
+			,#{element.apDutyName}
+			,TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+			,#{element.regUserId}
+			)
+			</foreach>
+			SELECT * FROM dual
+	</insert>           
+                                
+	<select id="selectApprovalItem" parameterType="String" resultType="approvalRqItemVo">
+		SELECT 
+			<include refid="approvaItem"/>
+		FROM 
+			EAC_APPROVAL_ITEM
+		WHERE 
+			APPROVAL_ID = #{approvalId}
+	</select>
+
+	<select id="selectApprovalLineList" parameterType="approvalRqVo" resultType="java.util.HashMap">
+		SELECT P.POLICY_ID
+			, PD.SEQ
+			, PD.APPROVAL_LINE_DEF_CD
+			, PD.APPROVAL_LINE_DEF_VAL
+			, CASE APPROVAL_LINE_DEF_CD
+		WHEN 'U' THEN
+			FN_GET_USER_INFO(P.COMPANY_CD,
+			PD.APPROVAL_LINE_DEF_VAL,'ALL')
+		WHEN 'D'
+		THEN
+			FN_GET_DEPT_MGR_INFO(P.COMPANY_CD, #{deptCode},'ALL')
+		WHEN 'P' 
+		THEN
+			FN_GET_UPDEPT_MGR_INFO(P.COMPANY_CD,
+			#{deptCode},'ALL')
+		WHEN 'E' 
+		THEN
+			FN_GET_UNDEPT_MGR_INFO(P.COMPANY_CD,
+			#{deptCode},'ALL')
+		ELSE NULL
+		END AS AP_USER_INFO
+		FROM
+			SYS_APPROVAL_POLICY P, SYS_APPROVAL_POLICY_DTL PD
+		WHERE
+			P.COMPANY_CD=#{companyCode}
+			AND P.USE_YN = 'Y'
+			AND P.DEL_YN = 'N'
+			AND
+				P.ACCOUNT_CD = #{accountCode}
+				AND (P.DEPT_CD IS NULL OR
+				P.DEPT_CD=#{deptCode})
+			AND #{amount} BETWEEN P.MIN_AMOUNT AND
+				P.MAX_AMOUNT
+			AND P.COMPANY_CD = PD.COMPANY_CD
+			AND P.POLICY_ID =
+				PD.POLICY_ID
+	</select>
+	
+	<select id="selectApprovalRrqList" parameterType="java.util.Map" resultType="java.util.HashMap">
+		
+		<if test='pagingYn == "Y"'>
+			<include refid="common.prefixOra" />
+		</if>
+		SELECT * FROM (	
+		<include refid="Approval21"/>
+		)ORDER BY AUTH_DATE DESC
+		
+		<if test='pagingYn == "Y"'>
+			<include refid="common.suffixOra" />
+		</if>
+		ORDER BY AUTH_DATE DESC
+	</select>
+	
+	
+	<!-- 미상신 내역 결재 리스트 COUNT -->
+	<select id="selectApprovalRrqCount" resultType="long">
+		SELECT COUNT(*) TOTAL_ROW FROM(
+			<include refid="Approval21"/>
+		)
+	</select>
+	
+	<update id="updateCardUseStatus">
+		UPDATE EAC_CARD_AQ_MGMT SET CARD_USING_TP_CD 
+		WHERE 1=1
+			AND CARD_NUM = #{cardNum}
+			AND AUTH_DATE = #{authDate}
+			
+	</update>
+	
+	
+	
+	<sql id="Approval21">
+	-- ===================================
+		-- 2.1 대체자 : 대체자에 내가 지정된 카드 사용 건 
+		-- ===================================
+	SELECT '21' AS APP_TYPE
+           , C.AUTH_DATE
+           , C.MERC_NAME
+           , C.AMT_AMOUNT
+           , C.VAT_AMOUNT
+           , C.REQUEST_AMOUNT
+           , C.CARD_NUM
+           , C.AUTH_NUM           
+           , C.GEORAE_STAT
+           , C.GEORAE_COLL
+           , E.USER_ID AS OWNER_ID
+           , M.REP_USER_ID AS NREQ_USER_ID           
+   		FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_MGMT M, EAC_CARD_AQ_MGMT G 
+ 		WHERE 1=1
+      			  AND C.CARD_NUM = E.CARD_NO
+			      AND E.COMPANY_CD = #{companyCode}                                                      
+			      AND E.COMPANY_CD=M.COMPANY_CD
+			      AND E.CARD_NO=M.CARD_NO   
+			      AND C.CARD_NUM = G.CARD_NUM
+			      AND C.AUTH_DATE = G.AUTH_DATE
+			      AND C.AUTH_NUM = G.AUTH_NUM
+			      AND C.GEORAE_STAT = G.GEORAE_STAT
+			      AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+			      AND C.GEORAE_COLL = G.GEORAE_COLL
+			      AND (M.REP_CARD_YN='Y' AND M.REP_USER_ID = #{userId} )   	-- 검색조건 : 로그인한 사용자ID (대체자)
+      			  <if test='sDate != null and sDate != "all"'>
+             		AND C.AUTH_DATE like #{sDate} || '%'         			-- 검색조건 : 날짜
+					</if>
+      			  <if test='cardUsingTypeCode == "1"'> 
+				  AND ( G.CARD_USING_TP_CD = '1' or G.CARD_USING_TP_CD is null)   	   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+				  <if test='cardUsingTypeCode == "2"'> 
+				  AND G.CARD_USING_TP_CD = '2' 										   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+			      AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		WHERE 1=1
+					AND A.COMPANY_CD = I.COMPANY_CD
+                    AND A.APPROVAL_ID = I.APPROVAL_ID
+                    AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+                    AND A.DEL_YN = 'N' --고정
+		)
+	</sql>
+
+
+	<!-- 1.1 일반 : 카드 사용날짜에 카드사용계획이 없으면서 카드 소유자가 나인 것 (대체자가 있어도 무방) (소유카드) (상신자는 소유자ID) -->
+	<sql id="Approval11">
+		SELECT '11' AS APP_TYPE
+                   , C.AUTH_DATE
+                   , C.MERC_NAME
+                   , C.AMT_AMOUNT
+                   , C.VAT_AMOUNT
+                   , C.REQUEST_AMOUNT
+                   , C.CARD_NUM
+                   , C.AUTH_NUM
+                   , C.GEORAE_STAT
+                   , C.GEORAE_COLL
+                   , D.USER_ID AS OWNER_ID
+                   , D.USER_ID AS NREQ_USER_ID           
+		FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G
+        WHERE 1=1
+				AND C.CARD_NUM = D.CARD_NO
+             	AND D.COMPANY_CD='PHARM'
+              	AND C.CARD_NUM = G.CARD_NUM
+              	AND C.AUTH_DATE = G.AUTH_DATE
+              	AND C.AUTH_NUM = G.AUTH_NUM
+              	AND C.GEORAE_STAT = G.GEORAE_STAT
+              	AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+              	AND C.GEORAE_COLL = G.GEORAE_COLL
+             	AND D.USER_ID = #{userId}  	                    		-- 검색조건 : 로그인사용자ID
+             	<if test='sDate != null and sDate != "all"'>
+             	AND C.AUTH_DATE like #{sDate} || '%'         			-- 검색조건 : 날짜
+				</if>
+				<if test='cardUsingTypeCode == "1"'> 
+				  AND ( G.CARD_USING_TP_CD = '1' or G.CARD_USING_TP_CD is null)   	   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+				  <if test='cardUsingTypeCode == "2"'> 
+				  AND G.CARD_USING_TP_CD = '2' 										   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+				AND C.CARD_NUM NOT IN (
+										SELECT A.CARD_NUM                    
+										FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+										WHERE 1=1
+	                                             AND A.CARD_NUM = E.CARD_NO
+	                                             AND E.COMPANY_CD = #{companyCode}
+	                                             AND E.COMPANY_CD=S.COMPANY_CD
+	                                             AND E.CARD_NO=S.CARD_NO                  
+	                                             AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+										)      
+				AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		FROM 
+			EAC_APPROVAL A, 
+			EAC_APPROVAL_ITEM I
+		WHERE 1=1
+		        AND A.COMPANY_CD = I.COMPANY_CD
+		        AND A.APPROVAL_ID = I.APPROVAL_ID
+		        AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		        AND A.DEL_YN = 'N' --고정
+		        )
+	</sql>
+	
+	
+	
+	
+
+
+
+	<!-- 1.2. 사용계획 : 카드사용계획에 카드사용날짜에 내가 배치된 것.(공용카드)(자금팀) (상신자는 사용계획자ID) -->
+	<sql id="Approval12">
+		 SELECT '12' AS APP_TYPE
+                   , C.AUTH_DATE
+                   , C.MERC_NAME
+                   , C.AMT_AMOUNT
+                   , C.VAT_AMOUNT
+                   , C.REQUEST_AMOUNT
+                   , C.CARD_NUM
+                   , C.AUTH_NUM           
+                   , C.GEORAE_STAT
+                   , C.GEORAE_COLL
+                   , E.USER_ID AS OWNER_ID
+                   , S.USER_ID AS NREQ_USER_ID           
+           FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_SCHEDULE S, EAC_CARD_AQ_MGMT G
+         WHERE 1=1
+              AND C.CARD_NUM = E.CARD_NO
+              AND E.COMPANY_CD = 'PHARM'                                                      
+              AND E.COMPANY_CD=S.COMPANY_CD
+              AND E.CARD_NO=S.CARD_NO   
+              AND C.CARD_NUM = G.CARD_NUM
+              AND C.AUTH_DATE = G.AUTH_DATE
+              AND C.AUTH_NUM = G.AUTH_NUM
+              AND C.GEORAE_STAT = G.GEORAE_STAT
+              AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+              AND C.GEORAE_COLL = G.GEORAE_COLL
+              AND S.USER_ID = #{userId}     -- 검색조건 : 로그인한 사용자ID
+              	<if test='sDate != null and sDate != "all"'>
+				AND C.AUTH_DATE like #{sDate} || '%'         			-- 검색조건 : 날짜
+				</if>
+				<if test='cardUsingTypeCode == "1"'> 
+				  AND ( G.CARD_USING_TP_CD = '1' or G.CARD_USING_TP_CD is null)   	   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+				  <if test='cardUsingTypeCode == "2"'> 
+				  AND G.CARD_USING_TP_CD = '2' 										   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+              
+              AND C.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+              AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+                     NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+                                      FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+                                    WHERE 1=1
+                                         AND A.COMPANY_CD = I.COMPANY_CD
+                                         AND A.APPROVAL_ID = I.APPROVAL_ID
+                                         AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+                                         AND A.DEL_YN = 'N' --고정
+                                )  	
+	</sql>
+
+	<!-- 1.3 비서 : 카드 비서1,2에 지정된 카드 사용 건 (회장,부회장,사장 카드) (상신자는 비서ID) -->
+	<sql id="Approval13">
+		SELECT '13' AS APP_TYPE
+                   , C.AUTH_DATE
+                   , C.MERC_NAME
+                   , C.AMT_AMOUNT
+                   , C.VAT_AMOUNT
+                   , C.REQUEST_AMOUNT
+                   , C.CARD_NUM
+                   , C.AUTH_NUM           
+                   , C.GEORAE_STAT
+                   , C.GEORAE_COLL
+                   , E.USER_ID AS OWNER_ID
+                   , decode(#{userId}, M.SEC1_USER_ID,M.SEC1_USER_ID,M.SEC2_USER_ID,M.SEC2_USER_ID,null)  AS NREQ_USER_ID         -- 검색조건 : 로그인한 사용자ID (비서 ID)  
+           FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_MGMT M, EAC_CARD_AQ_MGMT G 
+         WHERE 1=1
+              AND C.CARD_NUM = E.CARD_NO
+              AND E.COMPANY_CD = #{companyCode}                                                      
+              AND E.COMPANY_CD=M.COMPANY_CD
+              AND E.CARD_NO=M.CARD_NO   
+              AND C.CARD_NUM = G.CARD_NUM
+              AND C.AUTH_DATE = G.AUTH_DATE
+              AND C.AUTH_NUM = G.AUTH_NUM
+              AND C.GEORAE_STAT = G.GEORAE_STAT
+              AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+              AND C.GEORAE_COLL = G.GEORAE_COLL
+              AND (M.SEC_CARD_YN='Y' AND (M.SEC1_USER_ID = #{userId}  OR M.SEC2_USER_ID = #{userId}))   -- 검색조건 : 로그인한 사용자ID (비서 ID)
+              <if test='sDate != null and sDate != "all"'>
+				AND C.AUTH_DATE like #{sDate} || '%'         			-- 검색조건 : 날짜
+				</if>
+				<if test='cardUsingTypeCode == "1"'> 
+				  AND ( G.CARD_USING_TP_CD = '1' or G.CARD_USING_TP_CD is null)   	   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+				  <if test='cardUsingTypeCode == "2"'> 
+				  AND G.CARD_USING_TP_CD = '2' 										   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+				  </if>
+              AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+                     NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+                                      FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+                                    WHERE 1=1
+                                         AND A.COMPANY_CD = I.COMPANY_CD
+                                         AND A.APPROVAL_ID = I.APPROVAL_ID
+                                         AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+                                         AND A.DEL_YN = 'N' --고정
+                                )       
+	</sql>
+
+
+	<!-- 1.4 사용실적 : 카드실제 사용자가 나인것 (공용카드)(영업팀) (상신자는 실사용자ID) -->
+	<sql id="Approval14">
+		SELECT '14' AS APP_TYPE,
+               C.AUTH_DATE,
+               C.MERC_NAME,
+               C.AMT_AMOUNT,
+               C.VAT_AMOUNT,
+               C.REQUEST_AMOUNT,
+               C.CARD_NUM,
+               C.AUTH_NUM,
+               C.GEORAE_STAT,
+               C.GEORAE_COLL,
+               (SELECT USER_ID
+                   FROM EAC_CARD R
+                   WHERE C.CARD_NUM = R.CARD_NO) AS OWNER_ID,
+               G.ACT_USER_ID AS NREQ_USER_ID
+          FROM CARD_AQ_TMP C,
+               EAC_CARD_AQ_MGMT G
+          WHERE 1 = 1
+            AND C.CARD_NUM = G.CARD_NUM
+            AND C.AUTH_DATE = G.AUTH_DATE
+            AND C.AUTH_NUM = G.AUTH_NUM
+            AND C.GEORAE_STAT = G.GEORAE_STAT
+            AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+            AND C.GEORAE_COLL = G.GEORAE_COLL
+            <if test='sDate != null and sDate != "all"'>
+				AND C.AUTH_DATE like #{sDate} || '%'         							-- 검색조건 : 날짜
+			</if>
+				
+            AND G.ACT_USER_ID = #{userId}              									-- 검색조건 : 로그인사용자ID 
+            <if test='cardUsingTypeCode == "1"'> 
+		    AND ( G.CARD_USING_TP_CD = '1' or G.CARD_USING_TP_CD is null)   	   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+		  	</if>
+		  	<if test='cardUsingTypeCode == "2"'> 
+			AND G.CARD_USING_TP_CD = '2' 										   	-- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+			</if>
+            AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL)
+            NOT IN (SELECT I.CARD_NUM,
+                           I.AUTH_DATE,
+                           I.AUTH_NUM,
+                           I.GEORAE_STAT,
+                           I.REQUEST_AMOUNT,
+                           I.GEORAE_COLL
+                FROM EAC_APPROVAL A,
+                     EAC_APPROVAL_ITEM I
+                WHERE 1 = 1
+                  AND A.COMPANY_CD = I.COMPANY_CD
+                  AND A.APPROVAL_ID = I.APPROVAL_ID
+                  AND A.APPROVAL_STATUS_CD IN ('NREQ', 'NING', 'NAPR', 'EAPR', 'SR', 'SING', 'SAPR') -- 고정
+                  AND A.DEL_YN = 'N' --고정
+            )	
+	</sql>
+	<sql id="approvaItem">
+			 COMPANY_CD				AS		companyCode
+			,APPROVAL_ID			AS      approvalId
+			,SEQ                    AS      seq
+			,S_APPROVAL_ID          AS      sApprovalId
+			,S_APPROVAL_SEQ         AS      sApprovalSeq
+			,CUSTOMER_CD            AS      customerCode
+			,CUSTOMER_NM            AS      customerName
+			,SAUP_NO                AS      saupNo
+			,USER_ID                AS      userId
+			,USER_NM                AS      userName
+			,ACCOUNT2_CD            AS      account2Code
+			,ACCOUNT2_NM            AS      account2Name
+			,PRODUCT_CD             AS      productCode
+			,PRODUCT_NM             AS      productName
+			,FTR_CD                 AS      ftrCode
+			,DETAILS                AS      details
+			,OPINION                AS      optionContent
+			,MEET_REPORT            AS      meetReport
+			,SEMINAR_REPORT         AS      seminarReport
+			,CARD_OWNER_ID          AS      cardOwnerId
+			,CARD_OWNER_NM          AS      cardOwnerName
+			,CARD_OWNER_DEPT_CD     AS      cardOwnerDeptCode
+			,CARD_OWNER_DEPT_NM     AS      cardOwnerDeptName
+			,CARD_OWNER_TITLE_CD    AS      cardOwnerTitle
+			,CARD_OWNER_TITLE_NM    AS      cardOwnerTitle
+			,CARD_OWNER_DUTY_CD     AS      cardOwnerDutyCode
+			,CARD_OWNER_DUTY_NM     AS      cardOwnerDutyName
+			,AP_GEORAE_CAND         AS      apGeoraeCand
+			,CARD_NUM               AS      cardNum
+			,AUTH_DATE              AS      authDate
+			,AUTH_NUM               AS      authNum
+			,GEORAE_STAT            AS      georaeStat
+			,REQUEST_AMOUNT         AS      requestAmount
+			,GEORAE_COLL            AS      georaeColl
+			,MERC_NAME              AS      mercName
+			,SETT_DATE              AS      settDate
+			,OWNER_REG_NO           AS      ownerRegNo
+			,CARD_CODE              AS      cardCode
+			,CARD_NAME              AS      cardName
+			,USER_NAME              AS      useUserName
+			,AUTH_TIME              AS      authTime
+			,AQUI_DATE              AS      aquiDate
+			,GEORAE_CAND            AS      georaeCand
+			,AMT_AMOUNT             AS      amtAmount
+			,VAT_AMOUNT             AS      vatAmount
+			,SER_AMOUNT             AS      serAmount
+			,FRE_AMOUNT             AS      freAmount
+			,AMT_MD_AMOUNT          AS      amtMdAmount
+			,VAT_MD_AMOUNT          AS      vatMdAmount
+			,GEORAE_GUKGA           AS      georaeGukga
+			,FOR_AMOUNT             AS      forAmount
+			,USD_AMOUNT             AS      usdAmount
+			,AQUI_RATE              AS      aquiRate
+			,MERC_SAUP_NO           AS      mercSaupNo
+			,MERC_ADDR              AS      mercAddr
+			,MERC_REPR              AS      mercRepr
+			,MERC_TEL               AS      mercTel
+			,MERC_ZIP               AS      mercZip
+			,MCC_NAME               AS      mccName
+			,MCC_CODE               AS      mccCode
+			,MCC_STAT               AS      mccStat
+			,VAT_STAT               AS      vatStat
+			,CAN_DATE               AS      canDate
+			,ASK_SITE               AS      askSite
+			,SITE_DATE              AS      siteDate
+			,ASK_DATE               AS      askDate
+			,ASK_TIME               AS      askTime
+			,GONGJE_NO_CHK          AS      gongjeNoChk
+			,CREATEDATE             AS      createDate
+			,CREATETIME             AS      createTime
+			,SEND_YN                AS      sendYn
+			,AQUI_TIME              AS      aquiTime
+			,CONVERSION_FEE         AS      conversionFee
+			,ORG_COLL               AS      orgColl
+			,CARD_KIND              AS      cardKind
+			,SETT_DAY               AS      settDay
+			,SETT_BANKCODE          AS      settBankCode
+			,SETT_ACCO              AS      settAcco
+			,JUMIN_NO               AS      juminNo
+			,FINANCE_DATE           AS      nanceDate
+			,FINANCE_SEQ            AS      finaceSeq
+			,JUNPYO_INS_DATE        AS      npyoInsDate
+			,JUNPYO_ST_CD           AS      junpyoStCode
+			,REG_DTTM               AS      regDatetime
+			,REG_USER_ID            AS      regUserId
+			,UPD_DTTM               AS      updtDatetme
+			,UPD_USER_ID            AS      updtUserId
+			,FINANCE_NO             AS      financeNo
+	</sql>
+
+
+	<select id="SymposiumListCount" parameterType="symposiumRqVo" resultType="long">
+		SELECT COUNT(*) TOTAL_ROW
+		  FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM AD
+		 WHERE 1=1
+		   AND A.COMPANY_CD = #{companyCode}
+		   AND A.DEL_YN		= 'N'
+		   AND A.COMPANY_CD = AD.COMPANY_CD
+		   AND A.APPROVAL_ID = AD.APPROVAL_ID
+		   AND A.APPROVAL_STATUS_CD = 'SR'
+	</select>
+
+	<select id="selectSymposiumList" parameterType="symposiumRqVo" resultType="java.util.HashMap">
+		-- ==========================================
+		-- 심포지움관리자가 품의작성할 결재요청건 조회
+		-- ==========================================
+		SELECT A.COMPANY_CD
+		     , A.APPROVAL_ID AS S_APPROVAL_ID -- 심포지움 품의서ID
+		     , AD.SEQ		 AS S_APPROVAL_SEQ -- 심포지움 품의서 내역 일련번호
+		     , AD.AUTH_DATE
+		     , AD.MERC_NAME
+		     , AD.AMT_AMOUNT
+		     , AD.VAT_AMOUNT
+		     , AD.REQUEST_AMOUNT
+		     , AD.USER_ID
+		     , AD.USER_NM
+		     , AD.USER_NAME
+		     , A.BUDGET_DEPT_CD
+		     , A.BUDGET_DEPT_NM
+		     , A.ACCOUNT_CD
+		     , A.ACCOUNT_NM
+		     , AD.ACCOUNT2_CD
+		     , AD.ACCOUNT2_NM
+		     , AD.PRODUCT_CD
+		     , AD.PRODUCT_NM
+		     , AD.CUSTOMER_CD
+		     , AD.CUSTOMER_NM
+		     , AD.FTR_CD
+		     , AD.DETAILS
+		     , A.RQ_OPINION
+		  FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM AD
+		 WHERE 1=1
+		   AND A.COMPANY_CD = #{companyCode}
+		   AND A.DEL_YN		= 'N'
+		   AND A.COMPANY_CD = AD.COMPANY_CD
+		   AND A.APPROVAL_ID = AD.APPROVAL_ID
+		   AND A.APPROVAL_STATUS_CD = 'SR'
+		   <if test='authDate != null and authDate != "all"'>
+		   AND AD.AUTH_DATE LIKE #{authDate}||'%' -- 검색조건 : 승인년/월
+		   </if>
+	</select>
+
+
+	<!-- 심포지움 품의서 생성 -->
+	<insert id="insertSymposiumApproval" parameterType="approvalRqInfoVo">
+		-- ============================================================
+		-- 품의서 기초작성 
+		-- ============================================================
+		INSERT INTO EAC_APPROVAL (COMPANY_CD,
+                                  APPROVAL_ID,
+                                  RQ_DATE,
+                                  RQ_OPINION,
+                                  APPROVAL_STATUS_CD,
+                                  APPROVAL_DATE,
+                                  ACCOUNT_CD,
+                                  ACCOUNT_NM,
+                                  BUDGET_DEPT_CD,
+                                  BUDGET_DEPT_NM,
+                                  RQ_USER_ID,
+                                  RQ_USER_NM,
+                                  RQ_DEPT_CD,
+                                  RQ_DEPT_NM,
+                                  RQ_TITLE_CD,
+                                  RQ_TITLE_NM,
+                                  RQ_DUTY_CD,
+                                  RQ_DUTY_NM,
+                                  RRQ_USER_ID,
+                                  RRQ_USER_NM,
+                                  RRQ_DEPT_CD,
+                                  RRQ_DEPT_NM,
+                                  RRQ_TITLE_CD,
+                                  RRQ_TITLE_NM,
+                                  RRQ_DUTY_CD,
+                                  RRQ_DUTY_NM,
+                                  DEL_YN,
+                                  REG_DTTM,
+                                  REG_USER_ID,
+                                  UPD_DTTM,
+                                  UPD_USER_ID)
+		   SELECT #{companyCode},
+		          #{approvalId}, -- 파라메터 : 발행된 품의서ID
+		          NULL,     /* 상신일시 */
+		          NULL,     /* 상신의견 */
+		          'T',      /* 결재진행상태코드 */
+		          NULL,     /* 최종결재일 */
+		          '2',      /* 계정코드 */ -- 고정 : 심포지움(2)
+		          FN_GET_COM_CD(#{companyCode},'ACCOUNT_CD','2'),     /* 계정명 */   -- 고정
+		          NULL,     /* 예산부서코드 */
+		          NULL,     /* 예산부서명 */
+		          REQ.USER_ID,
+		          REQ.USER_NM,
+		          REQ.DEPT_CD,
+		          REQ.DEPT_NM,
+		          REQ.TITLE_CD,
+		          REQ.TITLE_NM,
+		          REQ.DUTY_CD,
+		          REQ.DUTY_NM,
+		          NULL, --  REP.USER_ID,
+		          NULL, --  REP.USER_NM,
+		          NULL, --  REP.DEPT_CD,
+		          NULL, --  REP.DEPT_NM,
+		          NULL, --  REP.TITLE_CD,
+		          NULL, --  REP.TITLE_NM,
+		          NULL, --  REP.DUTY_CD,
+		          NULL, --  REP.DUTY_NM,
+		          'N',
+		          TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS'),
+		          #{regUserId},   -- 로그인한 사용자ID
+		          NULL,
+		          NULL
+		     FROM V_SYS_USER REQ -- 상신자 정보
+		    WHERE 1 = 1
+           	  AND REQ.COMPANY_CD = #{companyCode}
+		      AND REQ.USER_ID = #{rqUserId}  -- TODO : 파라메터 : 심포지움관리자로서 로그인한 사용자ID(권한획득자)
+	</insert>
+
+	<!-- 심포지움 품의내역 생성 -->
+	<insert id="insertSymposiumApprovalItem" parameterType="java.util.List">
+		-- ============================================================
+		-- 품의내역서 기초작성 (심포지움결재요청 목록조회에서  선택한 건을 복사하여 생성
+		-- :::: 목록에서 선택한 갯수만큼 파라메터 변경하여 반복실행
+		-- ============================================================
+		INSERT INTO EAC_APPROVAL_ITEM (
+		   COMPANY_CD, APPROVAL_ID, SEQ, 
+		   S_APPROVAL_ID, S_APPROVAL_SEQ, CUSTOMER_CD, 
+		   CUSTOMER_NM, SAUP_NO, USER_ID, 
+		   USER_NM, ACCOUNT2_CD, ACCOUNT2_NM, 
+		   PRODUCT_CD, PRODUCT_NM, FTR_CD, 
+		   DETAILS, OPINION, CARD_OWNER_ID, 
+		   CARD_OWNER_NM, CARD_OWNER_DEPT_CD, CARD_OWNER_DEPT_NM, 
+		   CARD_OWNER_TITLE_CD, CARD_OWNER_TITLE_NM, CARD_OWNER_DUTY_CD, 
+		   CARD_OWNER_DUTY_NM, AP_GEORAE_CAND, CARD_NUM, 
+		   AUTH_DATE, AUTH_NUM, GEORAE_STAT, 
+		   REQUEST_AMOUNT, GEORAE_COLL, MERC_NAME, 
+		   SETT_DATE, OWNER_REG_NO, CARD_CODE, 
+		   CARD_NAME, USER_NAME, AUTH_TIME, 
+		   AQUI_DATE, GEORAE_CAND, AMT_AMOUNT, 
+		   VAT_AMOUNT, SER_AMOUNT, FRE_AMOUNT, 
+		   AMT_MD_AMOUNT, VAT_MD_AMOUNT, GEORAE_GUKGA, 
+		   FOR_AMOUNT, USD_AMOUNT, AQUI_RATE, 
+		   MERC_SAUP_NO, MERC_ADDR, MERC_REPR, 
+		   MERC_TEL, MERC_ZIP, MCC_NAME, 
+		   MCC_CODE, MCC_STAT, VAT_STAT, 
+		   CAN_DATE, ASK_SITE, SITE_DATE, 
+		   ASK_DATE, ASK_TIME, GONGJE_NO_CHK, 
+		   CREATEDATE, CREATETIME, SEND_YN, 
+		   AQUI_TIME, CONVERSION_FEE, ORG_COLL, 
+		   CARD_KIND, SETT_DAY, SETT_BANKCODE, 
+		   SETT_ACCO, JUMIN_NO, FINANCE_DATE, 
+		   FINANCE_SEQ, JUNPYO_INS_DATE, JUNPYO_ST_CD, 
+		   REG_DTTM, REG_USER_ID, UPD_DTTM, 
+		   UPD_USER_ID)    
+		SELECT
+		   #{companyCode}           /* 회사코드 */
+		 , #{approvalId}            /* 품의서ID */  -- 파라메터 : 발행된 품의서ID
+		 , ROWNUM					/* SEQ */
+		 , APPROVAL_ID              /* S_APPROVAL_ID */ 
+		 , SEQ                      /* S_APPROVAL_SEQ */  
+		 , C.CUSTOMER_CD            /* CUSTOMER_CD */
+		 , C.CUSTOMER_NM            /* CUSTOMER_NM */
+		 , C.SAUP_NO                /* SAUP_NO */
+		 , C.USER_ID                /* USER_ID */ 
+		 , C.USER_NM                /* USER_NM */ 
+		 , C.ACCOUNT2_CD            /* ACCOUNT2_CD */
+		 , C.ACCOUNT2_NM            /* ACCOUNT2_NM */
+		 , C.PRODUCT_CD             /* PRODUCT_CD */
+		 , C.PRODUCT_NM             /* PRODUCT_NM */
+		 , C.FTR_CD                 /* FTR_CD */
+		 , C.DETAILS                /* DETAILS */
+		 , C.OPINION                /* OPINION */
+		 , C.CARD_OWNER_ID          /* CARD_OWNER_ID       */
+		 , C.CARD_OWNER_NM          /* CARD_OWNER_NM       */
+		 , C.CARD_OWNER_DEPT_CD     /* CARD_OWNER_DEPT_CD  */
+		 , C.CARD_OWNER_DEPT_NM     /* CARD_OWNER_DEPT_NM  */
+		 , C.CARD_OWNER_TITLE_CD    /* CARD_OWNER_TITLE_CD */
+		 , C.CARD_OWNER_TITLE_NM    /* CARD_OWNER_TITLE_NM */
+		 , C.CARD_OWNER_DUTY_CD     /* CARD_OWNER_DUTY_CD  */
+		 , C.CARD_OWNER_DUTY_NM     /* CARD_OWNER_DUTY_NM  */
+		 , C.AP_GEORAE_CAND         /* AP_GEORAE_CAND */
+		 , C.CARD_NUM               /* CARD_NUM        */
+		 , C.AUTH_DATE              /* AUTH_DATE       */
+		 , C.AUTH_NUM               /* AUTH_NUM        */
+		 , C.GEORAE_STAT            /* GEORAE_STAT     */
+		 , C.REQUEST_AMOUNT         /* REQUEST_AMOUNT  */
+		 , C.GEORAE_COLL            /* GEORAE_COLL     */
+		 , C.MERC_NAME              /* MERC_NAME       */
+		 , C.SETT_DATE              /* SETT_DATE       */
+		 , C.OWNER_REG_NO           /* OWNER_REG_NO    */
+		 , C.CARD_CODE              /* CARD_CODE       */
+		 , C.CARD_NAME              /* CARD_NAME       */
+		 , C.USER_NAME              /* USER_NAME       */
+		 , C.AUTH_TIME              /* AUTH_TIME       */
+		 , C.AQUI_DATE              /* AQUI_DATE       */
+		 , C.GEORAE_CAND            /* GEORAE_CAND     */
+		 , C.AMT_AMOUNT              /* AMT_AMOUNT      */
+		 , C.VAT_AMOUNT              /* VAT_AMOUNT      */
+		 , C.SER_AMOUNT              /* SER_AMOUNT      */
+		 , C.FRE_AMOUNT              /* FRE_AMOUNT      */
+		 , C.AMT_MD_AMOUNT           /* AMT_MD_AMOUNT   */
+		 , C.VAT_MD_AMOUNT           /* VAT_MD_AMOUNT   */
+		 , C.GEORAE_GUKGA            /* GEORAE_GUKGA    */
+		 , C.FOR_AMOUNT              /* FOR_AMOUNT      */
+		 , C.USD_AMOUNT              /* USD_AMOUNT      */
+		 , C.AQUI_RATE               /* AQUI_RATE       */
+		 , C.MERC_SAUP_NO            /* MERC_SAUP_NO    */
+		 , C.MERC_ADDR               /* MERC_ADDR       */
+		 , C.MERC_REPR               /* MERC_REPR       */
+		 , C.MERC_TEL                /* MERC_TEL        */
+		 , C.MERC_ZIP                /* MERC_ZIP        */
+		 , C.MCC_NAME                /* MCC_NAME        */
+		 , C.MCC_CODE                /* MCC_CODE        */
+		 , C.MCC_STAT                /* MCC_STAT        */
+		 , C.VAT_STAT                /* VAT_STAT        */
+		 , C.CAN_DATE                /* CAN_DATE        */
+		 , C.ASK_SITE                /* ASK_SITE        */
+		 , C.SITE_DATE               /* SITE_DATE       */
+		 , C.ASK_DATE                /* ASK_DATE        */
+		 , C.ASK_TIME                /* ASK_TIME        */
+		 , C.GONGJE_NO_CHK           /* GONGJE_NO_CHK   */
+		 , C.CREATEDATE              /* CREATEDATE      */
+		 , C.CREATETIME              /* CREATETIME      */
+		 , C.SEND_YN                 /* SEND_YN         */
+		 , C.AQUI_TIME               /* AQUI_TIME       */
+		 , C.CONVERSION_FEE          /* CONVERSION_FEE  */
+		 , C.ORG_COLL                /* ORG_COLL        */     
+		 , C.CARD_KIND               /* CARD_KIND       */
+		 , C.SETT_DAY                /* SETT_DAY        */
+		 , C.SETT_BANKCODE           /* SETT_BANKCODE   */
+		 , C.SETT_ACCO               /* SETT_ACCO       */
+		 , C.JUMIN_NO                /* JUMIN_NO        */ 
+		 , NULL                      /* FINANCE_DATE    */
+		 , NULL                      /* FINANCE_SEQ     */
+		 , NULL                      /* JUNPYO_INS_DATE */
+		 , '0'                       /* JUNPYO_ST_CD    */
+		 , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')            /* REG_DTTM */
+		 , #{regUserId}              /* REG_USER_ID */ -- 고정 파라메터 : 로그인한 사용자ID
+		 , NULL                      /* UPD_DTTM */
+		 , NULL                      /* UPD_USER_ID */ 
+		 FROM EAC_APPROVAL_ITEM C
+		WHERE 1=1
+		  AND C.COMPANY_CD = #{companyCode}
+		  AND C.APPROVAL_ID IN  -- 화면에서 선택한 건의 APPROVAL_ID
+		  	<foreach collection="list" item="element" index="index" open="(" separator=", " close=")">
+		  		#{element}
+		  	</foreach>
+		ORDER BY APPROVAL_ID, SEQ
+	</insert>
+
+
+</mapper>

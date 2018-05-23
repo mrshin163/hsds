@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../../common/css/bizSP.css">
+<script src="../../common/js/jquery-1.8.3.min.js"></script>
+<script src="../../common/js/jquery.plugin.js"></script>
+<script src="../../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body class="admin">
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../cardManage/cardManage.html"><span>카드관리</span></a>
+							</li>
+							<li class="">
+								<a href=""><span>코드관리</span></a>
+								<ul class="depth02">
+									<li><a href="../codeManage/groupList.html" class="">그룹목록</a></li>
+									<li><a href="">코드목록</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><span>권한관리</span></a>
+								<ul class="depth02">
+									<li><a href="../authManage/authReg.html" >권한등록</a></li>
+									<li><a href="../authManage/userAuthReg.html" >사용자권한관리</a></li>
+									<li><a href="../authManage/menuAuth.html" class="">메뉴권한관리</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><span>결재선관리</span></a>
+								<ul class="depth02">
+									<li><a href="">결재선 유형 관리</a></li>
+									<li><a href="">결재선 라인 목록</a></li>
+									<li><a href="">결재선 위임</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href="../menuManage/menuManage.html"><span>메뉴관리</span></a>
+							</li>
+							<li class="active">
+								<a href="../noticeManage/noticeReg.html"><span>공지사항 등록</span></a>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><span>공지사항 등록</span></h2>
+						<p class="location">Home > 공지사항 등록</p>
+					</div>
+					<!-- 검색내역 -->
+					<div class="srchList">
+						<strong class="tit">공지사항 목록 <em>2건</em></strong>
+						<div class="innerBox">
+							<div class="btns">
+								<a href="" class="btnReg" onclick="showModal('newReg');return false;">신규등록</a>
+							</div>
+							<table class="defaultType">
+								<colgroup>
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+								</colgroup>
+								<thead>
+									<tr>
+										<th>NO</th>
+										<th>제목</th>
+										<th>작성자</th>
+										<th>등록일</th>
+										<th>수정</th>
+										<th>삭제</th>
+										<th>조회수</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>1</td>
+										<td>법인카드 e-Accounting 시스템 오픈</td>
+										<td>관리자</td>
+										<td>2015-03-01</td>
+										<td><button type="type" class="btnModify">수정</button></td>
+										<td><button type="type" class="btnDelShort">삭제</button></td>
+										<td>625</td>
+									</tr>
+									<tr>
+										<td>2</td>
+										<td>법인카드 e-Accounting 시스템 오픈</td>
+										<td>관리자</td>
+										<td>2015-03-01</td>
+										<td><button type="type" class="btnModify">수정</button></td>
+										<td><button type="type" class="btnDelShort">삭제</button></td>
+										<td>625</td>
+									</tr>
+									<tr>
+										<td>3</td>
+										<td>법인카드 e-Accounting 시스템 오픈</td>
+										<td>관리자</td>
+										<td>2015-03-01</td>
+										<td><button type="type" class="btnModify">수정</button></td>
+										<td><button type="type" class="btnDelShort">삭제</button></td>
+										<td>625</td>
+									</tr>
+									<tr>
+										<td>4</td>
+										<td>법인카드 e-Accounting 시스템 오픈</td>
+										<td>관리자</td>
+										<td>2015-03-01</td>
+										<td><button type="type" class="btnModify">수정</button></td>
+										<td><button type="type" class="btnDelShort">삭제</button></td>
+										<td>625</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<!-- //검색내역 -->
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+
+	<!-- 신규등록 팝업 -->
+	<div class="layer" id="newReg">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">공지사항 등록</strong>
+			<!-- 공지사항 등록 -->
+			<div class="long">
+				<table class="horizontalTable">
+					<colgroup>
+						<col width=""/>
+						<col width=""/>
+					</colgroup>
+					<tbody>
+						<tr>
+							<th>제목</th>
+							<td><input type="text" style="width:96%"/></td>
+						</tr>
+						<tr>
+							<th>내용</th>
+							<td>
+								<textarea name="" id="" style="width:96%;height:200px;"></textarea>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="btns">
+					<button type="button" class="btnSave">저장</button>
+				</div>
+			</div>
+			<!-- //공지사항 등록 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('newReg');return false;"><img src="../../images/btn_close.png"/></button>
+	</div>
+	<!-- //신규등록 팝업 -->
+
+</body>
+</html>

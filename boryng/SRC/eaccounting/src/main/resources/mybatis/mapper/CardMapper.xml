@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CardMapper">
+
+
+	<!-- 목록 조회 조건  -->
+	<sql id="selectCardListCnd">
+			 WHERE 1=1
+				 AND E.COMPANY_CD 		= #{companyCd}
+				 AND E.COMPANY_CD 		= M.COMPANY_CD(+)
+				 AND E.CARD_NO 			= M.CARD_NO(+)
+				 AND E.COMPANY_CD 		= U.COMPANY_CD(+)
+				 AND E.USER_ID 			= U.USER_ID(+)
+				 AND M.COMPANY_CD 		= REP.COMPANY_CD(+)
+				 AND M.REP_USER_ID 		= REP.USER_ID(+)
+				 AND M.COMPANY_CD 		= COM.COMPANY_CD(+)
+				 AND M.COM_CARD_MGR_ID 	= COM.USER_ID(+)
+				 AND M.COMPANY_CD 		= SEC1.COMPANY_CD(+)
+				 AND M.SEC1_USER_ID 	= SEC1.USER_ID(+)
+				 AND M.COMPANY_CD 		= SEC2.COMPANY_CD(+)
+				 AND M.SEC2_USER_ID 	= SEC2.USER_ID(+)
+				 AND U.COMPANY_CD 		= D.COMPANY_CD(+)
+				 AND U.DEPT_CD 			= D.DEPT_CD(+)
+				 AND D.DEPT_MGR_USER_ID = DEPMGR.USER_ID(+)
+				 AND E.USE_YN 			= 'Y'
+				 AND E.DEL_YN 			= 'N'
+				 AND E.COMPANY_CD 		= CD.COMPANY_CD
+				 AND E.CARD_OWN_CD 		= CD.COM_CD(+)
+				 AND CD.COM_CD_GRP_ID 	= 'CARD_OWN_CD'
+				 AND CD.USE_YN 			= 'Y'
+				 AND CD.DEL_YN 			= 'N'
+			   <if test='cardOwnCd != null and cardOwnCd != "all"'>
+ 			   	 AND E.CARD_OWN_CD = #{cardOwnCd} -- 검색조건 : 카드종류(법인카드1/법인개인카드2)
+ 			   </if>
+			   <if test='cardNo != null and cardNo != "all"'>
+			  	 AND E.CARD_NO like '%' || #{cardNo} || '%' -- 검색조건 : 카드번호
+			   </if>
+			   <if test='cardOwnUser != null and cardOwnUser != "all"'>
+			   	 AND (E.USER_ID = #{cardOwnUser} OR U.USER_NM like '%'||#{cardOwnUser}||'%') -- 검색조건 : 카드소유자ID/명
+				   <!-- AND (E.USER_ID = #{cardOwnUserId} OR U.USER_NM like '%'||#{cardOwnUser}||'%') - 검색조건 : 카드소유자ID/명 -->
+			   </if>
+			   <if test='cardStCd != null and cardStCd != "all"'>
+				   AND E.CARD_ST_CD = #{cardStCd} -- 검색조건 : 카드상태
+			   </if>
+			   <if test='searchTypeCd != null and cardStCd != "all"'>
+			   		<if test='searchTypeCd == "COM"'>
+				   		AND M.COM_CARD_YN = 'Y' -- 검색조건 : 공용카드건만 조회
+				   </if>
+			   		<if test='searchTypeCd == "REP"'>
+						AND M.REP_CARD_YN = 'Y' -- 검색조건 : 대체자 카드건만 조회
+				   </if>
+			   		<if test='searchTypeCd == "SEC"'>
+						AND M.SEC_CARD_YN = 'Y' -- 검색조건 : 공용카드건만 조회
+				   </if>
+			   </if> 
+	</sql>
+	
+	<!-- 목록 조회 조건  -->
+	<sql id="selectCardScheduleListCnd">
+			 WHERE 1=1
+			   AND E.COMPANY_CD = #{companyCd}
+			   AND E.COMPANY_CD = M.COMPANY_CD (+)
+			   AND E.CARD_NO    = M.CARD_NO (+)
+			   AND E.COMPANY_CD = S.COMPANY_CD (+)
+			   AND E.CARD_NO    = S.CARD_NO (+)
+			   AND E.COMPANY_CD = U.COMPANY_CD (+)
+			   AND E.USER_ID    = U.USER_ID (+)
+			   AND E.USE_YN = 'Y'
+			   AND E.DEL_YN = 'N'
+			   <if test='cardOwnCd != null and cardOwnCd != "all"'>
+ 			   	 AND E.CARD_OWN_CD = #{cardOwnCd} -- 검색조건 : 카드종류(법인카드1/법인개인카드2)
+ 			   </if>
+			   <if test='cardNo != null and cardNo != "all"'>
+			  	 AND E.CARD_NO = #{cardNo} -- 검색조건 : 카드번호
+			   </if>
+			   <if test='cardOwnUser != null and cardOwnUser != "all"'>
+			   	 AND (E.USER_ID = #{cardOwnUser} OR U.USER_NM like '%'||#{cardOwnUser}||'%') -- 검색조건 : 카드소유자ID/명
+				   <!-- AND (E.USER_ID = #{cardOwnUserId} OR U.USER_NM like '%'||#{cardOwnUser}||'%') - 검색조건 : 카드소유자ID/명 -->
+			   </if>
+			   <if test='cardStCd != null and cardStCd != "all"'>
+				   AND E.CARD_ST_CD = #{cardStCd} -- 검색조건 : 카드상태
+			   </if>
+			   <if test='searchTypeCd != null and cardStCd != "all"'>
+			   		<if test='searchTypeCd == "COM"'>
+				   		AND M.COM_CARD_YN = 'Y' -- 검색조건 : 공용카드건만 조회
+				   </if>
+			   		<if test='searchTypeCd == "REP"'>
+						AND M.REP_CARD_YN = 'Y' -- 검색조건 : 대체자 카드건만 조회
+				   </if>
+			   		<if test='searchTypeCd == "SEC"'>
+						AND M.SEC_CARD_YN = 'Y' -- 검색조건 : 공용카드건만 조회
+				   </if>
+			   		<if test='searchTypeCd == "SHR"'>
+					     AND S.START_DAY IS NOT NULL -- 검색조건 : 자금팅공용카드 건만 조회시 
+				   </if>
+			   </if> 
+	</sql>
+	
+
+	<select id="selectCardList" parameterType="java.util.Map" resultType="cardVo" >
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			-- ===============================
+			-- 카드 목록 조회
+			-- ===============================
+		  SELECT E.CARD_NO			AS cardNo
+			   , E.CARD_TP_CD		AS cardTpCd
+			   , E.CARD_TP_NM		AS cardTpNm
+			   , E.CARD_ST_CD		AS cardStCd
+			   , E.CARD_ST_NM		AS cardStNm
+			   , E.JOIN_DATE		AS joinDate
+			   , E.EXPIRE_DATE		AS expireDate
+			   , E.USER_ID			AS cardOwnUserId
+			   , CD.COM_CD_NM		AS cardOwnNm
+			   , U.USER_NM			AS cardOwnUserNm
+			   , U.EMP_NO			AS cardOwnEmpNo
+			   , U.DEPT_NM			AS cardOwnDeptNm
+			   , U.TITLE_NM			AS cardOwnTiTleNm
+			   , D.DEPT_MGR_USER_ID	AS deptMgrId
+			   , DEPMGR.USER_NM		AS deptMgrNm
+			   , M.REP_CARD_YN		AS repCardYn
+			   , M.REP_USER_ID		AS repUserId
+			   , REP.USER_NM		AS repUserNm
+			   , M.COM_CARD_YN		AS comCardYn
+			   , M.COM_CARD_MGR_ID	AS comCardMgrId
+			   , COM.USER_NM		AS comCardMgrNm
+			   , M.SEC_CARD_YN		AS secCardYn
+			   , M.SEC1_USER_ID		AS sec1UserId
+			   , SEC1.USER_NM		AS sec1UserNm
+			   , M.SEC2_USER_ID		AS sec2UserId
+			   , SEC2.USER_NM		AS sec2UserNm
+			FROM EAC_CARD E
+			   , EAC_CARD_MGMT M
+			   , V_SYS_USER U		-- 카드소유자용
+			   , V_SYS_USER REP		-- 대체사용자용
+			   , V_SYS_USER COM		-- 공용카드관리자용
+			   , V_SYS_USER SEC1	-- 비서1용
+			   , V_SYS_USER SEC2	-- 비서2용
+			   , SYS_DEPT D
+			   , V_SYS_USER DEPMGR	-- 부서장용
+			   , SYS_COM_CD CD
+				<include refid="selectCardListCnd"/>
+			ORDER BY M.REP_CARD_YN, M.COM_CARD_YN, M.SEC_CARD_YN
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>			
+	</select>
+
+	<!-- 카드리스트 COUNT -->
+	<select id="countCardList" resultType="long" parameterType="java.util.Map">
+			SELECT COUNT(*) 
+			FROM EAC_CARD E
+			   , EAC_CARD_MGMT M
+			   , V_SYS_USER U		-- 카드소유자용
+			   , V_SYS_USER REP		-- 대체사용자용
+			   , V_SYS_USER COM		-- 공용카드관리자용
+			   , V_SYS_USER SEC1	-- 비서1용
+			   , V_SYS_USER SEC2	-- 비서2용
+			   , SYS_DEPT D
+			   , V_SYS_USER DEPMGR	-- 부서장용
+			   , SYS_COM_CD CD
+		<include refid="selectCardListCnd"/>
+	</select>
+	
+	<select id="selectCardScheduleList" parameterType="java.util.Map" resultType="cardVo" >
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			-- ===============================
+			-- 카드 목록 조회
+			-- ===============================
+			SELECT E.CARD_NO                                          AS cardNo           
+			     , E.CARD_TP_CD                                       AS cardTpCd         
+			     , E.CARD_TP_NM                                       AS cardTpNm         
+			     , E.CARD_ST_CD                                       AS cardStCd         
+			     , E.CARD_ST_NM                                       AS cardStNm         
+			     , E.JOIN_DATE                                        AS joinDate         
+			     , E.EXPIRE_DATE                                      AS expireDate       
+			     , E.USER_ID                                          AS cardOwnUserId    
+			     , FN_GET_COM_CD (#{companyCd}, 'CARD_OWN_CD', E.CARD_OWN_CD)  AS cardOwnNm
+			     , U.USER_NM                                          AS cardOwnUserNm    
+			     , U.EMP_NO                                           AS cardOwnEmpNo     
+			     , U.DEPT_NM                                          AS cardOwnDeptNm    
+			     , U.TITLE_NM                                         AS cardOwnTiTleNm   
+			     , FN_GET_DEPT_MGR_INFO (#{companyCd}, U.DEPT_CD, 'USER_ID')	AS deptMgrId
+			     , FN_GET_DEPT_MGR_INFO (#{companyCd}, U.DEPT_CD, 'USER_NM')	AS deptMgrNm
+			     , M.REP_CARD_YN                                      AS repCardYn        
+			     , M.REP_USER_ID                                      AS repUserId        
+			     , M.REP_USER_NM                                      AS repUserNm        
+			     , M.COM_CARD_YN                                      AS comCardYn        
+			     , M.COM_CARD_MGR_ID                                  AS comCardMgrId     
+			     , M.COM_CARD_MGR_NM                                  AS comCardMgrNm     
+			     , M.SEC_CARD_YN                                      AS secCardYn        
+			     , M.SEC1_USER_ID                                     AS sec1UserId       
+			     , M.SEC1_USER_NM                                     AS sec1UserNm       
+			     , M.SEC2_USER_ID                                     AS sec2UserId       
+			     , M.SEC2_USER_NM                                     AS sec2UserNm       
+			     , DECODE(S.START_DAY,NULL,'N','Y')                   AS sCardYn          
+			     , S.START_DAY                                        AS sStartDay        
+			     , S.END_DAY                                          AS sEndDay          
+			     , S.USER_ID                                          AS sUserId	      
+			     , S.S_USER_NM                                        AS sUserNm        
+			  FROM EAC_CARD E
+			     , (SELECT q.COMPANY_CD, q.CARD_NO
+			             , REP_CARD_YN, REP_USER_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.REP_USER_ID, 'USER_NM') AS REP_USER_NM
+			             , COM_CARD_YN, COM_CARD_MGR_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.COM_CARD_MGR_ID, 'USER_NM') AS COM_CARD_MGR_NM
+			             , SEC_CARD_YN
+			             , SEC1_USER_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.SEC1_USER_ID, 'USER_NM') AS SEC1_USER_NM
+			             , SEC2_USER_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.SEC2_USER_ID, 'USER_NM') AS SEC2_USER_NM
+			          FROM EAC_CARD_MGMT Q, V_SYS_USER QU
+			         WHERE Q.COMPANY_CD = QU.COMPANY_CD (+)
+			           AND Q.REG_USER_ID = QU.USER_ID (+)
+			       ) M
+			     , (SELECT w.COMPANY_CD, w.CARD_NO, w.START_DAY, w.END_DAY, w.USER_ID, FN_GET_USER_INFO(W.COMPANY_CD, W.USER_ID, 'USER_NM') AS S_USER_NM
+                      FROM EAC_CARD_SCHEDULE w, V_SYS_USER wu
+                     WHERE W.COMPANY_CD = wu.COMPANY_CD (+)
+                       AND w.USER_ID = wu.USER_ID (+)
+			       ) S
+			      , V_SYS_USER U -- 카드소유자용 
+				<include refid="selectCardScheduleListCnd"/>
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>			
+	</select>
+	
+	<!-- 카드리스트 COUNT -->
+	<select id="countCardScheduleList" resultType="long" parameterType="java.util.Map">
+			SELECT COUNT(*) 
+			  FROM EAC_CARD E
+			     , (SELECT q.COMPANY_CD, q.CARD_NO
+			             , REP_CARD_YN, REP_USER_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.REP_USER_ID, 'USER_NM') AS REP_USER_NM
+			             , COM_CARD_YN, COM_CARD_MGR_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.COM_CARD_MGR_ID, 'USER_NM') AS COM_CARD_MGR_NM
+			             , SEC_CARD_YN
+			             , SEC1_USER_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.SEC1_USER_ID, 'USER_NM') AS SEC1_USER_NM
+			             , SEC2_USER_ID, FN_GET_USER_INFO(Q.COMPANY_CD, Q.SEC2_USER_ID, 'USER_NM') AS SEC2_USER_NM
+			          FROM EAC_CARD_MGMT Q, V_SYS_USER QU
+			         WHERE Q.COMPANY_CD = QU.COMPANY_CD (+)
+			           AND Q.REG_USER_ID = QU.USER_ID (+)
+			       ) M
+			     , (SELECT w.COMPANY_CD, w.CARD_NO, w.START_DAY, w.END_DAY, w.USER_ID, FN_GET_USER_INFO(W.COMPANY_CD, W.USER_ID, 'USER_NM') AS S_USER_NM
+                      FROM EAC_CARD_SCHEDULE w, V_SYS_USER wu
+                     WHERE W.COMPANY_CD = wu.COMPANY_CD (+)
+                       AND w.USER_ID = wu.USER_ID (+)
+			       ) S
+			     , V_SYS_USER U -- 카드소유자용 
+		<include refid="selectCardScheduleListCnd"/>
+	</select>
+	
+	<select id="selectCardMgmt" parameterType="cardMgmtVo" resultType="java.util.HashMap">
+		SELECT E.COMPANY_CD,
+		       E.CARD_NO,
+		       E.REP_CARD_YN,
+		       E.REP_USER_ID,
+		       E.COM_CARD_YN,
+		       E.COM_CARD_MGR_ID,
+		       E.SEC_CARD_YN,
+		       E.SEC1_USER_ID,
+		       E.SEC2_USER_ID,
+		       E.REG_DTTM,
+		       E.REG_USER_ID,
+		       E.UPD_DTTM,
+		       E.UPD_USER_ID
+		  FROM EAC_CARD_MGMT E
+		 WHERE 1=1
+		   AND E.COMPANY_CD = #{companyCd}
+		   AND E.CARD_NO = #{cardNo}
+	</select>
+
+	<insert id="insertCardMgmt" parameterType="cardMgmtVo">
+		INSERT INTO EAC_CARD_MGMT 
+		(
+		     COMPANY_CD
+		   , CARD_NO
+		   , REP_CARD_YN
+		   , REP_USER_ID
+		   , COM_CARD_YN
+		   , COM_CARD_MGR_ID 
+		   , SEC_CARD_YN
+		   , SEC1_USER_ID
+		   , SEC2_USER_ID 
+		   , REG_DTTM 
+		   , REG_USER_ID
+		   , UPD_DTTM
+		   , UPD_USER_ID
+		) VALUES ( 
+		     #{companyCd}	/* COMPANY_CD */
+		   , #{cardNo}		/* CARD_NO */
+		   , 'N'		 	/* REP_CARD_YN */
+		   , NULL			/* REP_USER_ID */
+		   , 'N'			/* COM_CARD_YN */
+		   , NULL			/* COM_CARD_MGR_ID */
+		   , 'N'			/* SEC_CARD_YN */
+		   , NULL			/* SEC1_USER_ID */
+		   , NULL			/* SEC2_USER_ID */
+		   , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')	/* REG_DTTM */
+		   , #{regUserId}	/* REG_USER_ID */
+		   , NULL 			/* UPD_DTTM */
+		   , NULL			/* UPD_USER_ID */ 
+		)		
+	</insert>	
+	
+	<update id="updateCardMgmt" parameterType="cardMgmtVo">
+		 UPDATE EAC_CARD_MGMT
+		   SET UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID = #{updUserId}
+		   <if test="repCardYn != null">
+		     , REP_CARD_YN = #{repCardYn}
+		     , REP_USER_ID = #{repUserId}
+		     , COM_CARD_YN = 'N'
+		     , COM_CARD_MGR_ID = NULL
+		     , SEC_CARD_YN = 'N'
+		     , SEC1_USER_ID = NULL
+		     , SEC2_USER_ID = NULL
+		   </if>
+		    <if test="comCardYn != null">
+		     , REP_CARD_YN = 'N'
+		     , REP_USER_ID = NULL
+		     , COM_CARD_YN = #{comCardYn}
+		     , COM_CARD_MGR_ID = #{comCardMgrId}
+		     , SEC_CARD_YN = 'N'
+		     , SEC1_USER_ID = NULL
+		     , SEC2_USER_ID = NULL
+		   </if>
+		   <if test="secCardYn != null">
+		     , REP_CARD_YN = 'N'
+		     , REP_USER_ID = NULL
+		     , COM_CARD_YN = 'N'
+		     , COM_CARD_MGR_ID = NULL
+		     , SEC_CARD_YN = #{secCardYn}
+		     , SEC1_USER_ID = #{sec1UserId}
+		     , SEC2_USER_ID = #{sec2UserId}
+		   </if>
+		   <if test="repCardYn == null and comCardYn == null and secCardYn == null">
+		     , REP_CARD_YN = 'N'
+		     , REP_USER_ID = NULL
+		     , COM_CARD_YN = 'N'
+		     , COM_CARD_MGR_ID = NULL
+		     , SEC_CARD_YN = 'N'
+		     , SEC1_USER_ID = NULL
+		     , SEC2_USER_ID = NULL
+		   </if>
+	   WHERE 1=1
+	     AND COMPANY_CD = #{companyCd}
+	     AND CARD_NO    = #{cardNo}
+	</update>
+	
+	<insert id="insertCardSchedule" parameterType="cardScheduleVo">
+		INSERT INTO EAC_CARD_SCHEDULE 
+		(
+		     COMPANY_CD
+		   , CARD_NO
+		   , START_DAY 
+		   , END_DAY
+		   , USER_ID
+		   , REG_DTTM
+		   , REG_USER_ID
+		   , UPD_DTTM 
+		   , UPD_USER_ID
+		) VALUES ( 
+		     #{companyCd}	/* COMPANY_CD */
+		   , #{cardNo}		/* CARD_NO */
+		   , #{startDay}	/* START_DAY */
+		   , #{endDay}		/* END_DAY */
+		   , #{userId}		/* USER_ID */
+		   , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')	/* REG_DTTM */
+		   , #{regUserId}	/* REG_USER_ID */
+		   , NULL 			/* UPD_DTTM */
+		   , NULL			/* UPD_USER_ID */ 
+		)	
+	</insert>
+	
+	<update id="deleteCardSchedule" parameterType="cardScheduleVo">
+		DELETE FROM EAC_CARD_SCHEDULE
+		 WHERE 1=1
+		   AND COMPANY_CD 	= #{companyCd} 
+		   AND CARD_NO 		= #{cardNo}
+		   AND START_DAY 	= #{startDay}
+		   AND END_DAY 		= #{endDay}
+		   AND USER_ID		= #{userId}
+	</update>
+
+	<select id="selectCardSchedule" parameterType="cardScheduleVo" resultType="cardScheduleVo">
+		SELECT E.COMPANY_CD		AS companyCd,
+		       E.CARD_NO		AS cardNo,
+		       E.START_DAY		AS startDay,
+		       E.END_DAY		AS endDay,
+		       E.USER_ID		AS userId,
+		       FN_GET_USER_INFO(E.COMPANY_CD, E.USER_ID, 'USER_NM')		AS userNm,
+		       FN_GET_USER_INFO(E.COMPANY_CD, E.USER_ID, 'DEPT_NM')		AS deptNm,
+		       E.REG_DTTM		AS regDttm,
+		       E.REG_USER_ID	AS regUserId,
+		       E.UPD_DTTM		AS updDttm,
+		       E.UPD_USER_ID	AS updUserId
+		  FROM EAC_CARD_SCHEDULE E	
+		 WHERE 1=1
+		   AND E.COMPANY_CD = #{companyCd}
+		   AND E.CARD_NO 	= #{cardNo}
+		   <if test="startDay!=null and endDay!=null and userId!=null">
+			   AND E.START_DAY 	= #{startDay}
+			   AND E.END_DAY 	= #{endDay}
+			   AND E.USER_ID 	= #{userId}
+		   </if>
+	</select>
+	
+	<select id="selectCardScheduleVali" parameterType="cardScheduleVo" resultType="cardScheduleVo">
+		SELECT E.COMPANY_CD		AS companyCd,
+		       E.CARD_NO		AS cardNo,
+		       E.START_DAY		AS startDay,
+		       E.END_DAY		AS endDay,
+		       E.USER_ID		AS userId,
+		       FN_GET_USER_INFO(E.COMPANY_CD, E.USER_ID, 'USER_NM')		AS userNm,
+		       FN_GET_USER_INFO(E.COMPANY_CD, E.USER_ID, 'DEPT_NM')		AS deptNm,
+		       E.REG_DTTM		AS regDttm,
+		       E.REG_USER_ID	AS regUserId,
+		       E.UPD_DTTM		AS updDttm,
+		       E.UPD_USER_ID	AS updUserId
+		  FROM EAC_CARD_SCHEDULE E	
+		 WHERE 1=1
+		   AND E.COMPANY_CD		= 	#{companyCd}
+		   AND E.CARD_NO 		= 	#{cardNo}
+		   AND E.END_DAY 		>=	#{startDay} 
+
+
+	</select>
+	
+</mapper>

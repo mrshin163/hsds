@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:beans="http://www.springframework.org/schema/beans"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd						
+	http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
+
+	<!-- 확장자를 이용해 패턴을 걸때는 /**/*.해당 확장자 로 할 것(Ant Pattern 규칙) -->
+	<http pattern="/images/**/*" security="none" />
+	<http pattern="/css/**/*" security="none" />
+	<http pattern="/js/**/*" security="none" />
+	<http pattern="/inc/**/*" security="none" />
+
+
+	<http auto-config="true" use-expressions="true"   access-denied-page="/denied.biz">
+
+
+		<!-- <intercept-url pattern="/" access="permitAll" /> -->
+		<intercept-url pattern="/setChangeLocale.biz" access="permitAll" />
+		<intercept-url pattern="/login.biz" access="hasRole('ROLE_ANONYMOUS')" />
+		<intercept-url pattern="/admin/**" access="hasAnyRole('R07', 'R99')" /> <!-- hasAnyRole('R07','R99') - 한칸 안띄우면 에러 -->
+		<intercept-url pattern="/**" access="authenticated" />
+
+		<form-login login-page="/login.biz" username-parameter="userId"
+			password-parameter="password" login-processing-url="/loginProcess.biz"
+			authentication-failure-url="/login.biz?error=true"
+			default-target-url="/" always-use-default-target="true" />
+
+		<logout invalidate-session="true" logout-success-url="/" delete-cookies="JSESSIONID" logout-url="/logout.biz" />
+		<session-management invalid-session-url="/login.biz">
+			 <concurrency-control max-sessions="1" error-if-maximum-exceeded="true" />
+		</session-management>
+		
+	</http>
+	
+	<beans:bean id="signinSuccessHandler" class="com.bizsp.framework.security.handler.SigninSuccessHandler" />
+	<beans:bean id="signinFailureHandler" class="com.bizsp.framework.security.handler.SigninFailureHandler">
+		<beans:property name="defaultFailureUrl" value="/login.biz?error=true" />
+	</beans:bean>
+
+	<beans:bean
+		class="org.springframework.security.authentication.encoding.ShaPasswordEncoder"
+		id="passwordEncoder">
+		<beans:constructor-arg value="256" />
+	</beans:bean>
+	
+		<authentication-manager alias="authenticationManager">
+		<authentication-provider user-service-ref="cstmzngJdbcDaoImpl">
+			<!-- 암호화 -->
+			<!-- <password-encoder ref="passwordEncoder"/> -->
+		</authentication-provider>
+	</authentication-manager>
+
+	<beans:bean id="cstmzngJdbcDaoImpl"
+		class="com.bizsp.framework.security.dao.CstmzngJdbcDaoImpl">
+		<beans:property name="dataSource" ref="dataSource" />
+		<beans:property name="usersByUsernameQuery"
+			value="
+					SELECT 
+					          u.USER_ID
+					        , u.PASSWD
+					        , u.USER_NM
+					        , u.COMPANY_CD
+					        , u.COMPANY_NM
+					        , u.DEPT_CD
+					        , u.DEPT_NM
+					        , u.TITLE_CD
+					        , u.TITLE_NM
+					        , u.DUTY_CD
+					        , u.DUTY_NM
+					        , u.TITLE_ALIAS_CD
+					        , u.TITLE_ALIAS_NM
+					        , u.VIRTUAL_USER_YN					        			        
+					        , dept.SALES_YN
+					        , b.AUTH_IDS
+					        , u.MOBILE_NO
+					        , u.TEL_NO
+					    FROM V_SYS_USER u
+					       , SYS_DEPT dept 
+					       , (
+            					SELECT USER_ID, SUBSTR(AUTH_IDS,2) AS AUTH_IDS
+              					  FROM (               
+                    				SELECT USER_ID, FIRST_VALUE(AUTH_IDS) OVER (PARTITION BY USER_ID ORDER BY LENGTH(AUTH_IDS) DESC ) AUTH_IDS 
+                      					FROM (
+                            SELECT USER_ID, IDS, UP_IDS, SYS_CONNECT_BY_PATH(AUTH_ID,',') AS AUTH_IDS, LENGTH(SYS_CONNECT_BY_PATH(AUTH_ID,',')) AS LEN, LVL
+                              FROM (                                           
+                                        SELECT USER_ID, AUTH_ID, dense_rank() over (partition by user_id order by auth_ID) AS LVL
+                                             , USER_ID||(dense_rank() over (partition by user_id order by auth_ID)) AS UP_IDS, USER_ID||(dense_rank() over (partition by user_id order by auth_ID)+1) AS IDS
+                                          FROM SYS_USER_AUTH A
+                                    ) F
+                             WHERE 1=1
+                            CONNECT BY PRIOR IDS = UP_IDS 
+                            )       
+                    	) T
+            			 GROUP BY USER_ID,AUTH_IDS
+        				) b
+					  WHERE 1=1
+					    AND u.USER_ID = ?
+					    AND u.USER_ID = b.USER_ID
+					    AND u.DEPT_CD = dept.DEPT_CD
+			" />
+		<beans:property name="authoritiesByUsernameQuery"
+			value="SELECT 
+																USER_ID, AUTH_ID 
+																FROM SYS_USER_AUTH
+																WHERE 1=1
+																AND USER_ID = ?" />
+	</beans:bean>
+</beans:beans>

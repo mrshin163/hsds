@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="DownloadFileMapper">
+
+	<select id="selectAttachFile" parameterType="downloadAttachFileVo" resultType="downloadAttachFileVo">
+		SELECT
+			/** [DownloadFileMapper.selectAttachFile] [첨부파일 정보 조회] */
+				ATTACH_ID		AS attachId,
+				SEQ				AS seq,
+				LFILE_NM		AS lfileNm,
+				PFILE_NM		AS pfileNm,
+				EXT				AS ext,
+				FILE_PATH		AS filePath,
+				FILE_SIZE		AS fileSize
+					FROM
+						SYS_ATTACH_FILE
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND ATTACH_ID = #{attachId}
+								AND SEQ = #{seq}
+	</select>
+
+</mapper>

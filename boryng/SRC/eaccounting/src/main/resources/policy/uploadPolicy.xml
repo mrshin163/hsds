@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+파일업로드 기본정책
+<policy value="정책명">
+	<webRootAt value="false"/> 파일업로드를 web루트에 할 것인지 여부
+	<defaultDir value="\\upload"/> 파일업로드 기본디렉토리 웹루트일경우 / 로 시작 웹루트가 아닐경우 "common.upload.system" 경로를 제외한 경로를 입력한다.
+	<limitSize value="1000"/> 파일업로드 가능사이즈 단위 KB
+	<allowExt value="*"/> 	허용가능 확장자 '*' 모두가능
+	<denyExt value="jsp,html,htm,php,asp,vm"/> 업로드불가 확장자. '*'
+	<thumbnail>
+		<crop maxWidth="300" xyRatio="0.80" />
+		<crop maxWidth="200" xyRatio="0.40" />
+		<resize width="300" height="0"/>
+		-1 : width 혹은 height 변경시 나머지 길이는 변하지 않음
+		0 : width 혹은 height 변경시 나머지 길이도 같은 비율로 변함
+	</thumbnail>
+</policy>
+-->
+<root>
+	<policy name="default">
+		<webRootAt>false</webRootAt>
+		<defaultDir>\upload</defaultDir>
+		<limitSize>1000</limitSize>
+		<allowExt>*</allowExt>
+		<denyExt>jsp,html,htm,php,asp,vm</denyExt>
+	</policy>
+	
+	<policy name="galleryBoard">
+		<webRootAt>true</webRootAt>
+		<defaultDir>/gallery</defaultDir>
+		<limitSize>1000</limitSize>
+		<allowExt>jpg,jepg,gif,png</allowExt>
+		<denyExt>*</denyExt>
+		<thumbnail>
+			<crop name="C300" maxWidth="300" xyRatio="0.20" />
+			<crop name="C200" maxWidth="200" xyRatio="0.40" />
+			<resize name="R300" width="300" height="0"/>
+		</thumbnail>
+	</policy>
+</root>

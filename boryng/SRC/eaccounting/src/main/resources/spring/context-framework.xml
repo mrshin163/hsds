@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+<!-- 	ApplicationContext singleTone으로 가지고 오기 위한. -->
+	<bean id="appCtx" class="com.bizsp.framework.util.web.ContextHolder"/>	
+
+
+
+<!-- 	property files to loading -->
+    <context:property-placeholder location="classpath:/properties/*.properties" />
+
+	<!--프로퍼티를 가지고 온다. -->
+	<bean class="com.bizsp.framework.util.system.PropUtil" init-method="initilize"/>
+	
+	<!-- 	메시지를 불러온다. -->
+	<bean id="messageSource"
+          class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
+		<property name="basenames">
+			<list>
+			    <value>/WEB-INF/classes/messages/common-message</value>
+			</list>
+		</property>
+	</bean>
+	
+	<context:component-scan base-package="com.bizsp" use-default-filters="false">
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Service" />
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Repository" />
+        <context:include-filter type="annotation" expression="org.springframework.stereotype.Component" />
+    </context:component-scan>
+	
+	
+	<bean id="cacheManager" class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean" p:configLocation="classpath:cache/ehcache.xml" />
+	
+<!-- 메일보내기 -->
+	<!-- <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+	    <property name="host">
+	        <value>${mailHost}</value>
+	    </property>
+	    <property name="username">
+	        <value>${mailAdminId}</value>
+	    </property>
+	    <property name="password">
+	        <value>${mailAdminPwd}</value>
+	    </property>
+	    <property name="javaMailProperties">
+	        <props>
+	            <prop key="mail.smtp.auth">true</prop>
+	        </props>
+	    </property>
+	</bean> -->
+
+</beans>

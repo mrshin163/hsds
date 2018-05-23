@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+<tiles-definitions>
+	<definition name="mainTemplate" template="/WEB-INF/tiles/comm/template/mainTemplate.jsp">
+		<put-attribute name="title" value=":::: BR-EAS ::::" />
+		<put-attribute name="header" value="/WEB-INF/tiles/comm/header.jsp"/>
+		<put-attribute name="lnb" value="/WEB-INF/tiles/comm/lnb.jsp"/>
+		<put-attribute name="commPopLayer" value="/WEB-INF/tiles/comm/commPopLayer.jsp"/>
+		<put-attribute name="content" value="" />
+		<put-attribute name="footer" value="/WEB-INF/tiles/comm/footer.jsp"/>
+	</definition>
+	
+	<definition name="loginTemplate" template="/WEB-INF/tiles/comm/template/loginTemplate.jsp">
+		<put-attribute name="title" value=":::: BR-EAS ::::" />
+		<put-attribute name="content" value="" />
+		<put-attribute name="footer" value="/WEB-INF/tiles/comm/loginFooter.jsp"/>
+	</definition>
+	
+	<definition name="commTemplate" template="/WEB-INF/tiles/comm/template/commTemplate.jsp">
+		<put-attribute name="title" value=":::: BR-EAS ::::" />
+		<put-attribute name="header" value="/WEB-INF/tiles/comm/header.jsp"/>
+		<put-attribute name="lnb" value="/WEB-INF/tiles/comm/lnb.jsp"/>
+		<put-attribute name="commPopLayer" value="/WEB-INF/tiles/comm/commPopLayer.jsp"/>
+		<put-attribute name="content" value="" />
+		<put-attribute name="footer" value="/WEB-INF/tiles/comm/footer.jsp"/>
+	</definition>
+	
+	<definition name="testTemplate" template="/WEB-INF/tiles/comm/template/testTemplate.jsp">
+		<put-attribute name="title" value=":::: BR-EAS ::::" />
+		<put-attribute name="header" value="/WEB-INF/tiles/comm/header.jsp"/>
+		<put-attribute name="lnb" value="/WEB-INF/tiles/comm/lnb.jsp"/>
+		<put-attribute name="content" value="" />
+		<put-attribute name="footer" value="/WEB-INF/tiles/comm/footer.jsp"/>
+	</definition>
+	
+	
+	
+	<!-- name은 뷰이름으로 맵핑된다. -->
+	<definition name="main" extends="mainTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/main/main.jsp" />
+	</definition>
+	
+	<definition name="login" extends="loginTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/login/login.jsp" />
+	</definition>
+	
+	<definition name="admin/*/*" extends="commTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/admin/{1}/{2}.jsp" />
+	</definition>
+	
+	<definition name="*/*" extends="commTemplate">
+		<put-attribute name="content" value="/WEB-INF/views/{1}/{2}.jsp" />
+	</definition>
+	
+	
+	
+	
+</tiles-definitions>

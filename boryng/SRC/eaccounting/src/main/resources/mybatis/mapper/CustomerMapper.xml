@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CustomerMapper">
+
+	<!-- 공통코드 조회 조건  -->
+	<sql id="customerCnd">
+		<where>
+			<if test='customerName != null and customerName != "all"'>
+				CUSTOMER_NM LIKE '%' || #{customerName} || '%' OR CUSTOMER_CD LIKE '%' || #{customerName} || '%'
+			</if>
+			AND USE_YN = 'Y' 
+			AND DEL_YN = 'N'
+		</where>	
+	</sql>
+	
+	
+	
+	<!-- 공통 코드 목록 조회 -->
+	<select id="selectCustomerList" parameterType="customerVo" resultType="customerVo" >
+		SELECT  COMPANY_CD			AS	companyCode
+			    ,CUSTOMER_CD		AS	customerCode			    	
+			  	,CUSTOMER_NM        AS	customerName
+				,CUSTOMER_TP_CD     AS	customerTypeCode
+				,CUSTOMER_TP_NM     AS	customerTypeName
+				,DEAL_TP_CD         AS	dealTypeCode
+				,DEAL_TP_NM         AS	dealTypeName
+				,CEO_NM             AS	ceoName
+				,CORP_NO            AS	corpNo
+				,BIZ_NO             AS	bizNo
+				,JUMIN_NO           AS	juminNo
+				,POST_NO            AS	postNo
+				,ADDRESS            AS	address
+				,POST_NO_NEW        AS	postNoNew
+				,ADDRESS_NEW        AS	adressNew
+				,CUSTOMER_ST_CD     AS	customerStatusCode
+				,CUSTOMER_ST_NM     AS	customerStatusName
+				,DESCRIPTION        AS	description
+				,USE_YN             AS	userYn
+				,DEL_YN             AS	delYn
+				,IF_DATE            AS	ifDate
+				,REG_DTTM           AS	regDatetime
+				,REG_USER_ID        AS	regUserId
+				,UPD_DTTM           AS	updtDatetime
+				,UPD_USER_ID        AS  updtUserId
+		FROM EAC_CUSTOMER
+		<include refid="customerCnd"/>				
+	</select>
+</mapper>

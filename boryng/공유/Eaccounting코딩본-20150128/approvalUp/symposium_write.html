@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../common/css/bizSP.css">
+<script src="../common/js/jquery-1.8.3.min.js"></script>
+<script src="../common/js/jquery.plugin.js"></script>
+<script src="../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body>
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../index.html"><i class="icon iconHome"></i> <span>Home</span></a>
+							</li>
+							<li class="">
+								<a href=""><i class="icon iconApprovalUp"></i> <span>결재 상신</span></a>
+								<ul class="depth02">
+									<li><a href="../approvalUp/approvalUp_srch.html">결재상신</a></li>
+									<li><a href="../approvalUp/symposium_srch.html"  class="active">심포지움 결제상신</a></li>
+									<li><a href="../approvalUp/ingDoc.html">진행중 문서</a></li>
+									<li><a href="../approvalUp/returnDoc.html">반려문서</a></li>
+									<li><a href="../approvalUp/successDoc.html">완료문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconApproval"></i> <span>결재할 문서</span></a>
+								<ul class="depth02">
+									<li><a href="../doDoc/doDoc.html">결재할 문서</a></li>
+									<li><a href="../doDoc/successDoc.htm">완료 문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconReport"></i> <span>레포트</span></a>
+								<ul class="depth02">
+									<li><a href="../report/status.html">카드처리 현황</a></li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><i class="icon iconIngDoc"></i> <span>심포지움 결제상신</span></h2>
+						<p class="location">Home > 결재상신 > 심포지움 결재 상신</p>
+					</div>
+
+					<!-- 품의서 작성 -->
+					<div class="writeForm">
+						<div class="tit">
+							<strong>심포지움 품의서 작성</strong>
+							<div class="btns">
+								<a href="" onclick="showModal('approvalUp');return false;" class="btnUp">결재 상신</a>
+							</div>
+						</div>
+						<div class="innerBox first">
+							<div class="sTit">
+								<strong>결재선</strong>
+								<div class="btns">
+									<a href="" onclick="showModal('approvalAdd');return false;" class="btnAdd"><i class="icon iconAdd"></i>결재신 추가</a>
+									<a href="" class="btnDel"><i class="icon iconDel"></i>삭제</a>
+								</div>
+							</div>
+							<table class="defaultType">
+								<colgroup>
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+								</colgroup>
+								<thead>
+									<tr>
+										<th>&nbsp;</th>
+										<th>유형</th>
+										<th>성명</th>
+										<th>부서</th>
+										<th>직책</th>
+										<th>결재상태</th>
+										<th>담당자 사번</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td>상신</td>
+										<td>홍길동</td>
+										<td>홍보팀</td>
+										<td>대리</td>
+										<td>상신대기</td>
+										<td>700089</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td>상신</td>
+										<td>홍길동</td>
+										<td>홍보팀</td>
+										<td>대리</td>
+										<td>상신대기</td>
+										<td>700089</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td>상신</td>
+										<td>홍길동</td>
+										<td>홍보팀</td>
+										<td>대리</td>
+										<td>상신대기</td>
+										<td>700089</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td>상신</td>
+										<td>홍길동</td>
+										<td>홍보팀</td>
+										<td>대리</td>
+										<td>상신대기</td>
+										<td>700089</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div class="innerBox">
+							<div class="sTit">
+								<strong>심포지움 카드사용 내역</strong>
+							</div>
+							<div class="optionSelect">
+								<ul>
+									<li>
+										<span class="inputTit">계정 구분</span>
+										<select name="" id="" class="customSelect">
+											<option value="">계정 구분</option>
+										</select>
+										<span class="inputTit second">예산 부서</span>
+										<span class="customInput">
+											<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+										</span>
+									</li>
+								</ul>
+							</div>
+							<div class="scrollTable">
+								<div class="inner">
+									<table class="defaultType defaultType02">
+										<colgroup>
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+											<col width="" />
+										</colgroup>
+										<thead>
+											<tr>
+												<th><input type="checkbox" /></th>
+												<th>사용일</th>
+												<th>상호</th>
+												<th>공급가액</th>
+												<th>부가세</th>
+												<th>합계금액</th>
+												<th>담당자</th>
+												<th>예산부서</th>
+												<th>계정구분</th>
+												<th>세부계정</th>
+												<th>제품군/명</th>
+												<th>거래처</th>
+												<th>공정거래규약</th>
+												<th>결과보고서</th>
+												<th>사용내역</th>
+												<th>세미나사진</th>
+												<th>방명록</th>
+												<th>질의응답</th>
+												<th>카드세부</th>
+												<th>상신의견</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td><input type="checkbox" /></td>
+												<td>20150409</td>
+												<td>코리아컴퍼니</td>
+												<td>500,000</td>
+												<td>50,000</td>
+												<td>550,000</td>
+												<td>홍길동</td>
+												<td>홍보팀</td>
+												<td>심포지움</td>
+												<td><A href="" onclick="showModal('detailAccount');return false;">심포지움</a></td>
+												<td>700-5101</td>
+												<td><a href="" onclick="showModal('accountName');return false;">한국병원</a></td>
+												<td><a href="" onclick="showModal('ruleDoc');return false;">9100060001</a></td>
+												<td><a href="" onclick="showModal('resultDoc');return false;" class="btnView"><i class="icon iconView">돋보기</i></td>
+												<td>세미나실 대여</td>
+												<td><a href="" onclick="showModal('etc');return false;" class="btnView"><i class="icon iconView">돋보기</i></td>
+												<td><a href="" onclick="showModal('meetingDoc');return false;" class="btnView"><i class="icon iconView">돋보기</i></td>
+												<td><a href="" onclick="showModal('etc');return false;" class="btnView"><i class="icon iconView">돋보기</i>/td>
+												<td><a href="" onclick="showModal('etc');return false;" class="btnView"><i class="icon iconView">돋보기</i></td>
+												<td>결재해주세요</td>
+											</tr>
+										</tbody>
+										<tfoot>
+											<tr>
+												<td></td>
+												<td colspan="2" class="total">총계</td>
+												<td>99,999</td>
+												<td>99,999</td>
+												<td>99,999</td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+												<td></td>
+											</tr>
+										</tfoot>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- //품의서 작성 -->
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+
+	<!-- 결재상신 팝업 -->
+	<div class="layer" id="approvalUp">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">결재상신</strong>
+			<!-- 결재상신 -->
+			<div class="long">
+				<textarea name="" id="" style="width:99%;height:380px;"></textarea>
+				<div class="btmbtns">
+					<a href="" class="btnUp">결재 상신</a>
+				</div>
+			</div>
+			<!-- //결재상신 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('approvalUp');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //결재상신 팝업 -->
+
+	<!-- 결재선추가 팝업 -->
+	<div class="layer" id="approvalAdd">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">결재선추가</strong>
+			<!-- 결재선추가 -->
+			<div class="long">
+				<div class="topSrchCenter">
+					<span class="name">사원 검색</span>
+					<span class="customInput">
+						<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+					</span>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>소속</th>
+							<th>사번</th>
+							<th>이름</th>
+							<th>지책</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- //결재선추가 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('approvalAdd');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //결재선추가 팝업 -->
+
+	<!-- 세부계정 팝업 -->
+	<div class="layer" id="detailAccount">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">세부계정</strong>
+			<!-- 세부계정 -->
+			<div class="long">
+				<div class="topSrchCenter">
+					<span class="name">세부계정명</span>
+					<span class="customInput">
+						<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+					</span>
+				</div>
+				<div class="topSrch">
+					<a href="" class="btnCheckLong">선택</a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width="" />
+						<col width="" />
+						<col width="" />
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>회계계정코드</th>
+							<th>회계계정명</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- //세부계정 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('detailAccount');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //세부계정 팝업 -->
+
+	<!-- 거래처명 팝업 -->
+	<div class="layer" id="accountName">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">거래처명</strong>
+			<!-- 거래처명 -->
+			<div class="long">
+				<div class="topSrchCenter">
+					<span class="name">거래처명</span>
+					<span class="customInput">
+						<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+					</span>
+				</div>
+				<div class="topSrch">
+					<a href="" class="btnCheckLong">선택</a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>거래처명</th>
+							<th>대표자명</th>
+							<th>주소</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td></td>
+							<td></td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- //거래처명 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('accountName');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //거래처명 팝업 -->
+
+	<!-- 공정거래규약문서 팝업 -->
+	<div class="layer" id="ruleDoc">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">공정거래규약문서</strong>
+			<!-- 공정거래규약문서 -->
+			<div class="long">
+				<div class="topSrch">
+					<a href="" class="btnCheckLong">선택</a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>문서번호</th>
+							<th>날짜</th>
+							<th>거래처</th>
+							<th>제품(품목)</th>
+							<th>장소</th>
+							<th>금액</th>
+							<th>사번(담당자)</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td>123456789</td>
+							<td>2E+07</td>
+							<td>한국병원</td>
+							<td>xx 시약</td>
+							<td>추가</td>
+							<td>500,000 </td>
+							<td>12453</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- //공정거래규약문서 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('ruleDoc');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //공정거래규약문서 팝업 -->
+
+	<!-- 세미나결과보고서 팝업 -->
+	<div class="layer" id="resultDoc">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">세미나결과보고서</strong>
+			<!-- 세미나결과보고서 -->
+			<div class="long">
+				<div class="topSrch">
+					<a href="" class="btnCheckLong">선택</a>
+				</div>
+				<table class="horizontalTable">
+					<colgroup>
+						<col width="200" />
+						<col width="*" />
+					</colgroup>
+					<tbody>
+						<tr>
+							<th>작성자</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>행사명</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>날짜</th>
+							<td>
+								<select name="" id="" class="customSelect" >
+										<option value="">년</option>
+								</select>
+								<select name="" id="" class="customSelect" >
+										<option value="">월</option>
+								</select>
+								<select name="" id="" class="customSelect" >
+										<option value="">일</option>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<th>장소</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>참석인원</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>집행금액</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>주요내용</th>
+							<td>
+								<textarea name="" id=""></textarea>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="btmbtns">
+					<a href="" class="btnSaveLong">저장</a>
+				</div>
+			</div>
+			<!-- //세미나결과보고서 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('resultDoc');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //세미나결과보고서 팝업 -->
+
+	<!-- 회의록 팝업 -->
+	<div class="layer" id="meetingDoc">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">회의록</strong>
+			<!-- 회의록 -->
+			<div class="long">
+				<div class="topSrch">
+					<a href="" class="btnCheckLong">선택</a>
+				</div>
+				<table class="horizontalTable">
+					<colgroup>
+						<col width="200" />
+						<col width="*" />
+					</colgroup>
+					<tbody>
+						<tr>
+							<th>부서명</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>작성자</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>회의명</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>날짜</th>
+							<td>
+								<select name="" id="" class="customSelect" >
+										<option value="">년</option>
+								</select>
+								<select name="" id="" class="customSelect" >
+										<option value="">월</option>
+								</select>
+								<select name="" id="" class="customSelect" >
+										<option value="">일</option>
+								</select>
+							</td>
+						</tr>
+						<tr>
+							<th>시간</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>총 인원수</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>외부 참석자 명단</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>보령 참석자 명단</th>
+							<td><input type="text"></td>
+						</tr>
+						<tr>
+							<th>회의내용</th>
+							<td>
+								<textarea name="" id=""></textarea>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="btmbtns">
+					<a href="" class="btnSaveLong">저장</a>
+				</div>
+			</div>
+			<!-- //회의록 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('meetingDoc');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //회의록 팝업 -->
+
+	<!-- 파일첨부 팝업 -->
+	<div class="layer" id="etc">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">파일첨부</strong>
+			<!-- 파일첨부 -->
+			<div class="long">
+				<div class="topSrch">
+					<a href="" class="btnReg">파일추가</a>
+					<a href="" class="btnCancel">파일삭제</a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width="100" />
+						<col width="*" />
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>파일</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td><input type="text" style="width:97%;"/></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- //파일첨부 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('etc');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //파일첨부 팝업 -->
+</body>
+</html>

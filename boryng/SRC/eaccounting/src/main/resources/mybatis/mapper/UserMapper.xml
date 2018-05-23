@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="UserMapper">
+
+
+	<!-- 유저 조회 조건  -->
+	<sql id="commUserListCnd">
+		<where>
+			<if test='userName != null and userName != "all"'>
+				USER_NM LIKE '%' || #{userName} || '%'
+			</if>
+			<if test='deptName != null and deptName != "all"'>
+				AND DEPT_NM LIKE '%' || #{deptName} || '%'
+			</if>
+			AND DEL_YN = 'N'
+		</where>	
+	</sql>
+
+	<!-- 유저리스트 조회 -->
+	<select id="selectUserList" parameterType="userVo" resultType="userVo" >
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+		SELECT 
+			USER_ID			AS	userId     
+			,COMPANY_CD		AS  companyCode       
+			,COMPANY_NM      AS  companyName       
+			,DEPT_CD         AS  deptCode       
+			,DEPT_NM         AS  deptName       
+			,USER_NM         AS  userName       
+			,EMP_NO          AS  empNo          
+			,PASSWD          AS  userPw         
+			,TITLE_CD        AS  titleCode      
+			,TITLE_NM        AS  titleName      
+			,DUTY_CD         AS  dutyCode       
+			,DUTY_NM         AS  dutyName       
+			,TITLE_ALIAS_CD  AS  titleAliasCode 
+			,TITLE_ALIAS_NM  AS  titleAliasName 
+			,OFFICE_TEL_NO   AS  officeTelNo    
+			,TEL_NO          AS  telNo          
+			,MOBILE_NO       AS  mobileNo       
+			,EMAIL_ADDR      AS  emailAddr      
+			,RETIRE_YN       AS  retireYn       
+			,VIRTUAL_USER_YN AS  virtualUserYn  
+			,DEL_YN          AS  delYn          
+			,IF_DATE         AS  ifDate        
+			,REG_DTTM        AS  regDate        
+			,REG_USER_ID     AS  regUserId      
+			,UPD_DTTM        AS  updtDate       
+			,UPD_USER_ID     AS  updtUserId     
+			FROM V_SYS_USER
+			<include refid="commUserListCnd"/>
+			<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<select id="userCount" parameterType="userVo" resultType="long">
+		SELECT COUNT(*) FROM V_SYS_USER
+		<include refid="commUserListCnd"/>
+	</select>
+	
+	
+</mapper>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="EUC-KR"?>
+<taglib xmlns="http://java.sun.com/xml/ns/j2ee"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee/web-jsptaglibrary_2_0.xsd" version="2.0">
+<description>CommonFunction</description>
+<display-name>CommonFunction</display-name>
+<tlib-version>1.2</tlib-version>
+<short-name>cf</short-name>
+<uri>CommonFunction</uri>
+	
+	<!-- 메시지를 가지고 온다.-->
+    <function>
+        <name>getMessage</name>
+        <function-class>com.br.framework.util.web.MessageUtil</function-class>
+        <function-signature>
+            java.lang.String getMessage(java.lang.String,java.lang.Object[])
+        </function-signature>
+    </function>
+    
+	<!-- 
+	프로퍼티정보를 가지고 온다.
+	-->
+    <function>
+        <name>getValue</name>
+        <function-class>com.br.framework.util.system.PropUtil</function-class>
+        <function-signature>
+            java.lang.String getValue(java.lang.String)
+        </function-signature>
+    </function>
+    
+	<!-- 
+	캐시값을 가지고 온다.
+	-->
+   <!--  <function>
+        <name>getCache</name>
+        <function-class>com.devkim.springframework.cache.CacheUtil</function-class>
+        <function-signature>
+            java.lang.Object getCache(java.lang.String,java.lang.String)
+        </function-signature>
+    </function> -->
+</taglib>

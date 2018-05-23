@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="NoticeMapper">
+
+	<!-- 공지사항 리스트 조회 -->
+	<select id="selectNoticeList" parameterType="noticeVo" resultType="noticeVo" >
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+		SELECT	 
+			   COMPANY_CD 		AS companyCode
+			 , SEQ        		AS seq
+			 , TITLE       		AS title
+			 , CONTENT     		AS content
+			 , READ_CNT    		AS readCnt
+			 , ATTACH_ID   		AS attachId
+			 , USE_YN      		AS useYn
+			 , DEL_YN      		AS delYn
+			 , REG_DTTM    		AS regDate
+			 , CASE	
+					WHEN FN_GET_USER_INFO(COMPANY_CD , REG_USER_ID, 'USER_NM') IS NULL THEN REG_USER_ID
+					ELSE FN_GET_USER_INFO(COMPANY_CD , REG_USER_ID, 'USER_NM')
+			   END				AS regUserId
+			 , UPD_DTTM    		AS updtDate
+			 , UPD_USER_ID 		AS updtUserId
+		  FROM EAC_NOTICE
+		 WHERE COMPANY_CD 		= #{companyCode}
+		   AND USE_YN 			= 'Y'
+		   AND DEL_YN 			= 'N'
+		 ORDER BY TO_NUMBER(SEQ) DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>			
+	</select>
+	
+	<!-- 공지사항 리스트 COUNT -->
+	<select id="noticeCount" resultType="long" parameterType="noticeVo" >
+		SELECT COUNT(*) 
+		  FROM EAC_NOTICE
+		 WHERE COMPANY_CD 		= #{companyCode}
+		   AND USE_YN 			= 'Y'
+		   AND DEL_YN 			= 'N'
+	</select>
+	
+	<!-- 공지사항 리스트 조회 -->
+	<select id="selectNoticeOne" parameterType="noticeVo" resultType="noticeVo" >
+		SELECT	 
+			   SEQ        		AS seq
+			 , TITLE       		AS title
+			 , CONTENT     		AS content
+			 , READ_CNT    		AS readCnt
+			 , ATTACH_ID   		AS attachId
+			 , REG_DTTM    		AS regDate
+			 , CASE	
+					WHEN FN_GET_USER_INFO(COMPANY_CD , REG_USER_ID, 'USER_NM') IS NULL THEN REG_USER_ID
+					ELSE FN_GET_USER_INFO(COMPANY_CD , REG_USER_ID, 'USER_NM')
+			   END				AS regUserId
+		  FROM EAC_NOTICE
+		 WHERE COMPANY_CD 		= #{companyCode}
+		   AND SEQ				= #{seq}
+	</select>
+	
+	<!-- 첨부파일 리스트
+	<select id="getFileList" resultType="attachFileVo" parameterType="noticeVo">
+		SELECT	
+			   COMPANY_CD 		AS 	companyCode
+			 , SEQ        		AS 	seq
+			 , ATTACH_ID		AS	attachId
+			 , PFILE_NM			AS	pFileName				
+		  FROM SYS_ATTACH_FILE
+		 WHERE COMPANY_CD		= #{companyCode}
+		   AND ATTACH_ID 		= #{attachId}
+		   AND USE_YN 			= 'Y'
+		   AND DEL_YN 			= 'N'
+	</select> -->
+	
+	<select id="getAttachId" resultType="String">
+		SELECT 'ATT'||TO_CHAR(SYSDATE,'YYYYMMDD')||LPAD(SEQ_ATT.NEXTVAL,5,'0')
+		  FROM DUAL
+	</select>
+	
+	<select id="getNoticeSeq" resultType="String">
+		SELECT nvl((SELECT MAX(TO_NUMBER(SEQ))+1 FROM EAC_NOTICE),1)
+		  FROM DUAL
+	</select>	
+
+	<insert id="insertNotice" parameterType="noticeVo">
+		INSERT 
+		  INTO EAC_NOTICE
+		     ( COMPANY_CD
+			 , SEQ
+			 , TITLE
+			 , CONTENT
+			 , ATTACH_ID
+			 , REG_DTTM
+			 , REG_USER_ID)
+ 		VALUES 
+ 			 ( #{companyCode}
+		 	 , #{seq}
+			 , #{title}
+			 , #{content}
+			 , #{attachId}
+			 , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			 , #{regUserId})
+	</insert>
+	
+	
+	<update id="updateNotice" parameterType="noticeVo">
+		UPDATE EAC_NOTICE
+		   SET TITLE 			= #{title}
+		     , CONTENT 			= #{content}
+	    	 , UPD_DTTM 		= TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+	    	 , UPD_USER_ID 		= #{updtUserId}
+	    	 , ATTACH_ID 		= #{attachId}
+		 WHERE COMPANY_CD		= #{companyCode}
+	  	   AND SEQ 				= #{seq}
+	</update>
+	
+	<update id="addNoticeCnt" parameterType="noticeVo">
+		UPDATE EAC_NOTICE
+		   SET READ_CNT 		= READ_CNT+1
+		 WHERE COMPANY_CD		= #{companyCode}
+	  	   AND SEQ 				= #{seq}
+	</update>	
+	
+	<update id="deleteNotice" parameterType="noticeVo">
+		UPDATE EAC_NOTICE
+		   SET DEL_YN     		= 'Y'
+		 WHERE COMPANY_CD 		= #{companyCode}
+		   AND SEQ        		= #{seq}
+	</update>
+	
+	
+	<select id="getNoticeListTop5" resultType="noticeVo">
+        -- ------------------------------
+        -- 6. 공지사항 TOP 4
+        -- ------------------------------
+        SELECT * 
+          FROM (        
+                SELECT 
+					   COMPANY_CD 		AS companyCode
+					 , SEQ        		AS seq
+					 , TITLE       		AS title
+					 , CONTENT     		AS content
+					 , READ_CNT    		AS readCnt
+					 , ATTACH_ID   		AS attachId
+					 , USE_YN      		AS useYn
+					 , DEL_YN      		AS delYn
+					 , REG_DTTM    		AS regDate
+					 , CASE	
+							WHEN FN_GET_USER_INFO(COMPANY_CD , REG_USER_ID, 'USER_NM') IS NULL THEN REG_USER_ID
+							ELSE FN_GET_USER_INFO(COMPANY_CD , REG_USER_ID, 'USER_NM')
+					   END				AS regUserId
+					 , UPD_DTTM    		AS updtDate
+					 , UPD_USER_ID 		AS updtUserId
+                  FROM EAC_NOTICE
+                 WHERE 1=1
+                   AND USE_YN = 'Y'
+                   AND DEL_YN = 'N'
+                 ORDER BY TO_NUMBER(SEQ) DESC
+               )
+         WHERE 1=1
+           AND ROWNUM<![CDATA[<]]>5           
+	</select>
+	
+</mapper>

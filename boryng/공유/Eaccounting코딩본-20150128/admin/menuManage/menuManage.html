@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../../common/css/bizSP.css">
+<script src="../../common/js/jquery-1.8.3.min.js"></script>
+<script src="../../common/js/jquery.plugin.js"></script>
+<script src="../../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body class="admin">
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../cardManage/cardManage.html"><span>카드관리</span></a>
+							</li>
+							<li class="">
+								<a href=""><span>코드관리</span></a>
+								<ul class="depth02">
+									<li><a href="../codeManage/groupList.html">그룹목록</a></li>
+									<li><a href="">코드목록</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><span>권한관리</span></a>
+								<ul class="depth02">
+									<li><a href="../authManage/authReg.html" class="">권한등록</a></li>
+									<li><a href="../authManage/userAuthReg.html" class="">사용자권한관리</a></li>
+									<li><a href="../authManage/menuAuth.html" class="">메뉴권한관리</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><span>결재선관리</span></a>
+								<ul class="depth02">
+									<li><a href="">결재선 유형 관리</a></li>
+									<li><a href="">결재선 라인 목록</a></li>
+									<li><a href="">결재선 위임</a></li>
+								</ul>
+							</li>
+							<li class="active">
+								<a href="../menuManage/menuManage.html"><span>메뉴관리</span></a>
+							</li>
+							<li>
+								<a href="../noticeManage/noticeReg.html"><span>공지사항 등록</span></a>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><span>메뉴관리</span></h2>
+						<p class="location">Home > 메뉴관리</p>
+					</div>
+
+					<div class="treeArea">
+						<div class="left">
+							<div id="sidetreecontrol"> <a href="?#" class="btnTreeClose">트리축소</a>&nbsp;&nbsp;<a href="?#" class="btnTreeView">트리확장</a> </div><br/>
+							<ul id="browser" class="filetree">
+								<li><span class="folder">Biz-Accountion</span>
+									<ul>
+										<li><span class="folder">결재상신</span>
+											<ul id="folder21">
+												<li><span class="file">결재상신</span></li>
+												<li><span class="file">심포지움 결재상신</span></li>
+												<li><span class="file">진행중 문서</span></li>
+												<li><span class="file">반려 문서</span></li>
+												<li><span class="file">완료 문서</span></li>
+											</ul>
+										</li>
+									</ul>
+								</li>
+							</ul>
+						</div>
+						<div class="right">
+							<strong>메뉴정보</strong>
+							<table class="horizontalTable">
+								<colgroup>
+									<col width="150"/>
+									<col width=""/>
+								</colgroup>
+								<tbody>
+									<tr>
+										<th>메뉴 ID</th>
+										<td>5</td>
+									</tr>
+									<tr>
+										<th>메뉴명</th>
+										<td>결재할문서</td>
+									</tr>
+									<tr>
+										<th>상위메뉴 ID</th>
+										<td>1</td>
+									</tr>
+									<tr>
+										<th>메뉴레벨</th>
+										<td>2</td>
+									</tr>
+									<tr>
+										<th>메뉴순서</th>
+										<td>0</td>
+									</tr>
+									<tr>
+										<th>메뉴 URL</th>
+										<td>/appproval/</td>
+									</tr>
+									<tr>
+										<th>메뉴 사용 여부</th>
+										<td><input type="radio" id="menuON"/><label for="menuON">사용</label> <input type="radio" id="menuOFF"/><label for="menuOFF">사용안함</label></td>
+									</tr>
+								</tbody>
+							</table>
+							<div class="btns">
+								<a href="" class="btnRegShort">등록</a>
+								<a href="" class="btnModify">수정</a>
+								<a href="" class="btnDelShort">삭제</a>
+							</div>
+						</div>
+					</div>
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+</body>
+</html>

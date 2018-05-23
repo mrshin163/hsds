@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../../common/css/bizSP.css">
+<script src="../../common/js/jquery-1.8.3.min.js"></script>
+<script src="../../common/js/jquery.plugin.js"></script>
+<script src="../../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body class="admin">
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../cardManage/cardManage.html"><span>카드관리</span></a>
+							</li>
+							<li class="">
+								<a href=""><span>코드관리</span></a>
+								<ul class="depth02">
+									<li><a href="../codeManage/groupList.html">그룹목록</a></li>
+									<li><a href="">코드목록</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><span>권한관리</span></a>
+								<ul class="depth02">
+									<li><a href="../authManage/authReg.html" >권한등록</a></li>
+									<li><a href="../authManage/userAuthReg.html" class="active">사용자권한관리</a></li>
+									<li><a href="../authManage/menuAuth.html" class="">메뉴권한관리</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><span>결재선관리</span></a>
+								<ul class="depth02">
+									<li><a href="">결재선 유형 관리</a></li>
+									<li><a href="">결재선 라인 목록</a></li>
+									<li><a href="">결재선 위임</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href="../menuManage/menuManage.html"><span>메뉴관리</span></a>
+							</li>
+							<li>
+								<a href="../noticeManage/noticeReg.html"><span>공지사항 등록</span></a>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><span>사용자권한관리</span></h2>
+						<p class="location">Home > 권한관리 > 사용자권한관리</p>
+					</div>
+					<!-- 검색조건 -->
+					<div class="srchCondition">
+						<strong class="tit">검색 조건</strong>
+						<div class="innerBox">
+							<div class="left">
+								<ul>
+									<li>
+										<span class="inputTit">권한종류</span>
+										<select name="" id="" class="customSelect">
+											<option value="권한종류">권한종류</option>
+										</select>
+									</li>
+								</ul>
+							</div>
+							<div class="right">
+								<button type="button" class="btnSrch">검색</button>
+							</div>
+						</div>
+					</div>
+					<!-- //검색조건 -->
+
+					<!-- 검색내역 -->
+					<div class="srchList">
+						<strong class="tit">사용자권한 리스트 <em>2건</em></strong>
+						<div class="innerBox">
+							<div class="btns">
+								<a href="" class="btnReg" onclick="showModal('newReg');return false;">신규등록</a>
+							</div>
+							<table class="defaultType">
+								<colgroup>
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+								</colgroup>
+								<thead>
+									<tr>
+										<th>NO</th>
+										<th>사번</th>
+										<th>성명</th>
+										<th>직급</th>
+										<th>직책</th>
+										<th>부서명</th>
+										<th>권한종류</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>1</td>
+										<td>12001</td>
+										<td>홍길동</td>
+										<td>차장</td>
+										<td>팀장</td>
+										<td>시장조사팀</td>
+										<td>결재</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<!-- //검색내역 -->
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+
+	<!-- 신규등록 팝업 -->
+	<div class="layer" id="newReg">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">권한자 선택</strong>
+			<!-- 권한자 선택 -->
+			<div class="long">
+				<div class="topSrch">
+					<span class="name">부서명</span> <input type="text"> <a href="" onclick="showModal('depSrch');return false;" class="btnView"><i class="icon iconView">돋보기</i></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+					<span class="name">성명</span> <input type="text"> <a href=""onclick="showModal('memSrch');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>부서ID</th>
+							<th>부서명</th>
+							<th>부서장</th>
+							<th>상위부서</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td>51340</td>
+							<td>시장조사팀</td>
+							<td>김길수</td>
+							<td>마케팅본부</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="btns">
+					<button type="button" class="btnSave">저장</button>
+				</div>
+			</div>
+			<!-- //권한자 선택 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('newReg');return false;"><img src="../../images/btn_close.png"/></button>
+	</div>
+	<!-- //신규등록 팝업 -->
+
+	<!-- 사원조회 팝업 -->
+	<div class="layer" id="memSrch">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">직원 검색</strong>
+			<!-- 사원조회 -->
+			<div class="long">
+				<div class="topSrch">
+					<span class="name">성명</span> <input type="text"> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>부서</th>
+							<th>사번</th>
+							<th>이름</th>
+							<th>직책</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="5">검색된 직원이 없습니다.</td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td>회계팀</td>
+							<td>11092</td>
+							<td>이정수</td>
+							<td>과장</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="btns">
+					<button type="button" class="btnSave">저장</button>
+				</div>
+			</div>
+			<!-- //사원조회 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('memSrch');return false;"><img src="../../images/btn_close.png"/></button>
+	</div>
+	<!-- //사원조회 팝업 -->
+
+	<!-- 부서조회 팝업 -->
+	<div class="layer" id="depSrch">
+		<div class="layerInner layerInner02">
+			<strong class="firstTit">부서조회</strong>
+			<!-- 부서조회 -->
+			<div class="long">
+				<div class="topSrch">
+					<span class="name">부서명</span> <input type="text"> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+				</div>
+				<table class="defaultType">
+					<colgroup>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+						<col width=""/>
+					</colgroup>
+					<thead>
+						<tr>
+							<th><input type="checkbox" /></th>
+							<th>부서ID</th>
+							<th>부서명</th>
+							<th>부서장</th>
+							<th>상위부서</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td colspan="5">검색된 부서가 없습니다.</td>
+						</tr>
+						<tr>
+							<td><input type="checkbox" /></td>
+							<td>51340</td>
+							<td>시장조사팀</td>
+							<td>김길수</td>
+							<td>마케팅본부</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="btns">
+					<button type="button" class="btnSave">저장</button>
+				</div>
+			</div>
+			<!-- //부서조회 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('depSrch');return false;"><img src="../../images/btn_close.png"/></button>
+	</div>
+	<!-- //부서조회 팝업 -->
+</body>
+</html>

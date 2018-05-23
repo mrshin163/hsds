@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="MenuMapper">
+
+	<!-- 공통 조회 조건  -->
+	<sql id="selectMenuCnd">
+		<where> 
+			1=1
+			AND COMPANY_CD	=	#{companyCode}
+			<if test='menuId != null'>
+				AND	 MENU_ID = #{menuId}
+			</if>
+			AND	DEL_YN	= 'N'
+		</where>	
+	</sql>
+
+	<!-- 메뉴 리스트 -->
+	<select id="selectMenuList" parameterType="menuVo" resultType="java.util.HashMap" >
+		SELECT 
+				COMPANY_CD		 AS		 companyCode
+				,MENU_ID		 AS      menuId
+				,UP_MENU_ID      AS      upMenuId
+				,MENU_NM         AS      menuName
+				,MENU_LVL        AS      menuLevel
+				,MENU_ORD        AS      menuOrder
+				,URL             AS      url
+				,USE_YN          AS      useYn       
+				,DEL_YN          AS      delYn        
+				,REG_DTTM        AS      regDateTime  
+				,REG_USER_ID     AS      regUserId    
+				,UPD_DTTM        AS      updtDateTime 
+				,UPD_USER_ID     AS      updtUserId   
+				,ICON_ID     	 AS      iconId
+			    FROM SYS_MENU
+		<include refid="selectMenuCnd"/>	    
+	</select>
+	
+	<!-- 메뉴 정보 추가 -->
+	<insert id="insertMenu" parameterType="menuVo" >
+		INSERT 
+		  INTO SYS_MENU
+		     ( COMPANY_CD
+		     , MENU_ID
+		     , UP_MENU_ID
+		     , MENU_NM
+		     , MENU_LVL
+		     , MENU_ORD
+		     , URL
+		     , USE_YN
+		     , REG_USER_ID
+		     , ICON_ID) 
+		VALUES
+		     ( #{companyCode}							/* COMPANY_CD */
+		     , #{menuId}								/* MENU_ID */
+			 , #{upMenuId, jdbcType=VARCHAR}			/* UP_MENU_ID */
+			 , #{menuName, jdbcType=VARCHAR}			/* MENU_NM */
+			 , #{menuLevel, jdbcType=CHAR}				/* MENU_LVL */
+			 , #{menuOrder, jdbcType=VARCHAR}			/* MENU_ORD */
+			 , #{url, jdbcType=VARCHAR}					/* URL */
+			 , #{useYn}									/* USE_YN */
+			 , #{regUserId}								/* REG_USER_ID */
+			 , #{iconId, jdbcType=VARCHAR}				/* ICON_ID */ )
+	</insert>
+	
+	<!-- 메뉴 정보 업데이트 -->
+	<update id="updateMenu" parameterType="menuVo" >
+		UPDATE 
+			SYS_MENU
+		SET
+			MENU_NM 	= 	#{menuName}, 
+			UP_MENU_ID 	= 	#{upMenuId},  
+			MENU_LVL 	= 	#{menuLevel}, 
+			MENU_ORD 	= 	#{menuOrder}, 
+			URL 		= 	#{url}, 
+			USE_YN 		= 	#{useYn},
+			UPD_USER_ID	=	#{updtUserId},
+			UPD_DTTM	=	TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+			ICON_ID		=	#{iconId}
+		WHERE 
+			  COMPANY_CD	=	#{companyCode}
+		  AND MENU_ID 		= 	#{menuId}	
+	</update>
+	
+	<!-- 메뉴 정보 삭제 -->
+	<update id="deleteMenu" parameterType="menuVo" >
+		UPDATE 
+			SYS_MENU
+		SET
+			DEL_YN		=	'Y',
+			UPD_USER_ID	=	#{updtUserId},
+			UPD_DTTM	=	TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		WHERE 
+			  COMPANY_CD	=	#{companyCode}
+		  AND MENU_ID 		= 	#{menuId}	
+	</update>
+	
+	<!-- 메뉴 권한에  메뉴 획득  -->
+	<select id="selectUserMenuList" parameterType="java.util.Map" resultType="java.util.HashMap" >
+		SELECT   DISTINCT
+		         M.COMPANY_CD      AS      companyCode
+		        ,M.MENU_ID         AS      menuId
+		        ,M.UP_MENU_ID      AS      upMenuId
+		        ,M.MENU_NM         AS      menuName
+		        ,M.MENU_LVL        AS      menuLevel
+		        ,M.MENU_ORD        AS      menuOrder
+		        ,M.URL             AS      url
+		        ,M.USE_YN          AS      userYn       
+		        ,M.DEL_YN          AS      delYn        
+		        ,M.REG_DTTM        AS      regDateTime  
+		        ,M.REG_USER_ID     AS      regUserId    
+		        ,M.UPD_DTTM        AS      updtDateTime 
+		        ,M.UPD_USER_ID     AS      updtUserId 
+		        ,ICON_ID		   AS      iconId 
+		  FROM SYS_MENU M, SYS_MENU_AUTH MA
+		 WHERE 1=1
+		   AND M.USE_YN = 'Y' 	
+		   AND M.DEL_YN = 'N'
+		   AND M.COMPANY_CD = MA.COMPANY_CD
+		   AND M.MENU_ID = MA.MENU_ID
+		   AND MA.AUTH_ID IN (SELECT AUTH_ID FROM SYS_USER_AUTH UA WHERE COMPANY_CD=#{companyCd} AND USER_ID=#{userId})
+ 	</select>
+ 	
+ 	<!-- 해당메뉴의 자식 획득  -->
+	<select id="selectChildMenu" parameterType="menuVo" resultType="menuVo" >
+		SELECT 
+		         COMPANY_CD      AS      companyCode
+		        ,MENU_ID         AS      menuId
+		        ,UP_MENU_ID      AS      upMenuId
+		        ,MENU_NM         AS      menuName
+		        ,MENU_LVL        AS      menuLevel
+		        ,MENU_ORD        AS      menuOrder
+		        ,URL             AS      url
+		        ,USE_YN          AS      userYn       
+		        ,DEL_YN          AS      delYn        
+		        ,REG_DTTM        AS      regDateTime  
+		        ,REG_USER_ID     AS      regUserId    
+		        ,UPD_DTTM        AS      updtDateTime 
+		        ,UPD_USER_ID     AS      updtUserId  
+		  FROM SYS_MENU
+		 WHERE 1=1
+		   AND COMPANY_CD 	= #{companyCode}
+		   AND UP_MENU_ID	= #{menuId}
+		   AND DEL_YN 		= 'N'	   
+ 	</select>
+ 	
+ 	<!-- 해당메뉴의 부모 획득  -->
+	<select id="selectParentMenu" parameterType="menuVo" resultType="menuVo" >
+		SELECT 
+		         COMPANY_CD      AS      companyCode
+		        ,MENU_ID         AS      menuId
+		        ,UP_MENU_ID      AS      upMenuId
+		        ,MENU_NM         AS      menuName
+		        ,MENU_LVL        AS      menuLevel
+		        ,MENU_ORD        AS      menuOrder
+		        ,URL             AS      url
+		        ,USE_YN          AS      userYn       
+		        ,DEL_YN          AS      delYn        
+		        ,REG_DTTM        AS      regDateTime  
+		        ,REG_USER_ID     AS      regUserId    
+		        ,UPD_DTTM        AS      updtDateTime 
+		        ,UPD_USER_ID     AS      updtUserId  
+		  FROM SYS_MENU
+		 WHERE 1=1
+		   AND COMPANY_CD 	= #{companyCode}
+		   AND MENU_ID		IN	(SELECT UP_MENU_ID
+		   						   FROM SYS_MENU
+		   						  WHERE COMPANY_CD 	= #{companyCode}
+		   						    AND MENU_ID		= #{menuId}) 
+		   AND DEL_YN 		= 'N'	   
+ 	</select>	
+</mapper>

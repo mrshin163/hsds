@@ -1,0 +1,310 @@
+
+ - EAC_APPROVAL UPDATE 처리해야 함. 
+<update id="updateApprovalRq" parameterType="approvalRqInfoVo">
+	UPDATE 	EAC_APPROVAL 
+	SET 	RQ_DATE = SYSDATE, 
+			RQ_OPINION = #{rqOpinion},
+			ACCOUNT_CD = #{accountCode},
+			ACCOUNT_NM = #{accountName},
+			BUDGET_DEPT_CD = #{budgetDeptCode},
+			BUDGET_DEPT_NM = #{budgetDeptName},
+			APPROVAL_STATUS_CD = #{approvalStatusCode},
+			UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+			UPD_USER_ID = #{updtUserId}
+	WHERE 	1=1
+			AND APPROVAL_ID = #{approvalId}
+			AND COMPANY_CD = #{companyCode}
+</update> 
+
+
+UPDATE EAC_APPROVAL SET
+	RQ_DATE = SYSDATE, 
+	RQ_OPINION = #{rq_opinion},
+	APPROVAL_STATUS_CD = #{approvalStatusCode},
+	ACCOUNT_CD = #{account_cd},
+	ACCOUNT_NM = (SELECT COM_CD_NM FROM SYS_COM_CD WHERE 1=1 AND COMPANY_CD=#{c_cd} AND COM_CD=#{account_cd} AND COM_CD_GRP_ID='ACCOUNT_CD' AND USE_YN='Y'),
+	BUDGET_DEPT_CD = #{dept_cd},
+	BUDGET_DEPT_NM = #{dept_nm},
+	UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+	UPD_USER_ID = #{emp_id}
+WHERE 	1=1
+	AND APPROVAL_ID = #{approval_id}
+	AND COMPANY_CD = #{c_cd}
+
+
+
+
+
+
+ - EAC_APPROVAL_ITEM UPDATE 처리해야 함. 
+<update id="updateApprovalRqItem" parameterType="approvalRqItemVo">
+	UPDATE EAC_APPROVAL_ITEM
+	SET 
+		SEQ                  =   #{seq}           		-- 품의서 일련번호
+		<if test="sApprovalId != null">
+		,S_APPROVAL_ID       =   #{sApprovalId}   		-- 심포지엄 요청 품의서 ID
+		</if>
+		<if test="sApprovalSeq != null">
+		,S_APPROVAL_SEQ      =   #{sApprovalSeq}  		-- 심포지엄 요청 품의 일련번호
+		</if>
+		,CUSTOMER_CD         =   #{customerCode}  		-- 거래처 코드
+		,CUSTOMER_NM         =   #{customerName}  		-- 거래처 이름
+		<if test="saupNo != null">
+		,SAUP_NO             =   #{saupNo}        		-- 거래처 사업자 번호
+		</if>
+		,ACCOUNT2_CD         =   #{account2Code}  		-- 세부계정코드
+		,ACCOUNT2_NM         =   #{account2Name}  		-- 세부계정명
+		,PRODUCT_CD          =   #{productCode}   		-- 제품코드
+		,PRODUCT_NM          =   #{productName}   		-- 제품명
+		,FTR_CD              =   #{ftrCode}       		-- 공정거래규약코드
+		,DETAILS             =   #{details}       		-- 사용내역
+		,OPINION             =   #{opinion}        		-- 의견
+		,MEET_REPORT         =   #{meetReport}    		-- 회의록
+		,SEMINAR_REPORT      =   #{seminarReport} 		-- 세미나 리포트
+		,UPD_DTTM			 =	 TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+		<if test="updtUserId != null">
+		,UPD_USER_ID		 =	 #{updtUserId}			-- 업데이트 ID
+		</if>
+	WHERE APPROVAL_ID = #{approvalId}
+</update>   
+ 
+
+
+
+UPDATE EAC_APPROVAL_ITEM SET 
+		SEQ                  =   #{seq}           		-- 품의서 일련번호
+		<if test="sApprovalId != null">
+		,S_APPROVAL_ID       =   #{sApprovalId}   		-- 심포지엄 요청 품의서 ID
+		</if>
+		<if test="sApprovalSeq != null">
+		,S_APPROVAL_SEQ      =   #{sApprovalSeq}  		-- 심포지엄 요청 품의 일련번호
+		</if>
+		,CUSTOMER_CD         =   #{customer_cd}  		-- 거래처 코드
+		,CUSTOMER_NM         =   #{customer_nm}  		-- 거래처 이름
+		<if test="saupNo != null">
+		,SAUP_NO             =   #{saupNo}        		-- 거래처 사업자 번호
+		</if>
+		,ACCOUNT2_CD         =   #{account2_cd}  		-- 세부계정코드
+		,ACCOUNT2_NM         =   #{account2_nm}  		-- 세부계정명
+		,PRODUCT_CD          =   #{product_cd}   		-- 제품코드
+		,PRODUCT_NM          =   (SELECT COM_CD_NM FROM SYS_COM_CD WHERE 1=1 AND COMPANY_CD=#{c_cd} AND COM_CD=#{product_cd} AND COM_CD_GRP_ID='PROD_CD' AND USE_YN='Y')   		-- 제품명
+		,FTR_CD              =   #{ftrCode}       		-- 공정거래규약코드
+		,DETAILS             =   #{details}       		-- 사용내역
+		,OPINION             =   #{rq_opinion}        		-- 의견
+		,MEET_REPORT         =   #{meetReport}    		-- 회의록
+		,SEMINAR_REPORT      =   #{seminarReport} 		-- 세미나 결과보고서 리포트
+		,UPD_DTTM			 =	 TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+		<if test="emp_id != null">
+		,UPD_USER_ID		 =	 #{emp_id}			-- 업데이트 ID
+		</if>
+	WHERE 1=1
+		AND APPROVAL_ID = #{approval_id}
+		AND COMPANY_CD = #{c_cd}
+		AND SEQ = #{seq}
+
+
+
+
+
+
+ - EAC_APPROVAL_LINE INSERT 처리해야 함.
+<insert id="insertApprovalRqLine" parameterType="java.util.List">
+	INSERT ALL 
+		<foreach collection="list" item="element" index="index">
+		INTO EAC_APPROVAL_LINE(
+		COMPANY_CD
+		,APPROVAL_ID
+		,SEQ
+		,AP_USER_ID
+		,AP_USER_NM
+		,AP_DEPT_CD
+		,AP_DEPT_NM
+		,AP_TITLE_CD
+		,AP_TITLE_NM
+		,AP_DUTY_CD
+		,AP_DUTY_NM
+		,REG_DTTM
+		,REG_USER_ID
+		) 
+		VALUES (
+		#{element.companyCode}
+		,#{element.approvalId}
+		,#{element.seq}
+		,#{element.apUserId}
+		,#{element.apUserName}
+		,#{element.apDeptCode}
+		,#{element.apDeptName}
+		,#{element.apTitleCode}
+		,#{element.apTitleName}
+		,#{element.apDutyCode}
+		,#{element.apDutyName}
+		,TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+		,#{element.regUserId}
+		)
+		</foreach>
+		SELECT * FROM dual
+</insert>  
+
+
+
+--V52140$준법경영팀$52140$준법경영팀$6010$$23$$190$$$$$$N$Y
+--01155$김경태$55210$서울CLINIC 1팀$4010$차장$14$팀장$140$차장$02-708-8015$02-3395-7781$010-4599-3398$ktkim@boryung.co.kr$N$N
+--13002$안재현$30000   $전략기획본부$1050     $전무    $04       $본부장$050$전무$02-708-8025$$010-4722-7869$jaehyun.an@boryung.co.kr$N$N
+
+
+--10153$박세용$12000   $인사팀      $4010      $차장    $14      $팀장  $140      $차장   $02-708-8120 $02-437-9503$010-2927-2923$psypsy95@boryung.co.kr$N$N
+--사번 /이름  /부서코드/부서명      /직급코드 /직급명  /직책코드/직책명 /호칭코드/호칭명  /사무실번호   / 집전화 / 핸드폰 / 이메일 / 퇴직여부 / 가상여부?
+-- 0   / 1    / 2      / 3          / 4       / 5      / 6      / 7     / 8      / 9      / 10
+
+INSERT INTO EAC_APPROVAL_LINE(
+	COMPANY_CD
+	,APPROVAL_ID
+	,SEQ
+	,AP_USER_ID -- 결재자 아이디 
+	,AP_USER_NM -- 결재자명
+	,AP_DEPT_CD -- 결재자부서코드
+	,AP_DEPT_NM -- 결재자부서명
+	,AP_TITLE_CD -- 결재자직급코드
+	,AP_TITLE_NM -- 결재자직급명
+	,AP_DUTY_CD -- 결재자직책코드
+	,AP_DUTY_NM -- 결재자직책명
+	,REG_DTTM 
+	,REG_USER_ID
+) 
+VALUES (
+	#{c_cd}
+	,#{approval_id}
+	,#{line_seq}
+	,#{apUserId}
+	,#{apUserName}
+	,#{apDeptCode}
+	,#{apDeptName}
+	,#{apTitleCode}
+	,#{apTitleName}
+	,#{apDutyCode}
+	,#{apDutyName}
+	,TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+	,#{emp_id}
+)
+
+
+
+
+ - 첨부파일 관련 3개 테이블 INSERT 처리해야 함. 
+ - SYS_ATTACH -> SYS_ATTACH_FILE -> EAC_APPROVAL_ATTACH
+   첨부파일마스터 -> 첨부파일상세내역 -> 품의서첨부파일 
+
+-- 첨부파일마스터ID 가져오기 
+SELECT SEQ_ATT.NEXTVAL AS ATTACH_ID FROM DUAL 
+
+-- 첨부파일마스터 SYS_ATTACH 등록 
+INSERT INTO SYS_ATTACH(
+    COMPANY_CD
+    ,ATTACH_ID -- 첨부파일마스터ID
+    ,BIZ_TP_CD -- 첨부파일업무유형코드 APR01 품의서첨부 / APR02	공지사항첨부
+    ,BIZ_KEY -- 업무키 
+    ,USE_YN -- 사용여부 
+    ,DEL_YN -- 삭제여부 
+    ,REG_DTTM -- 등록일 
+    ,REG_USER_ID -- 등록자 
+) VALUES (
+    #{c_cd}
+    ,#{attach_id}
+    ,#{biz_tp_cd}
+    ,#{approval_id}
+    ,'Y'
+    ,'N'
+    ,TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+    ,#{emp_id}
+)
+
+-- 첨부파일상세내역 SYS_ATTACH_FILE 등록 
+INSERT INTO SYS_ATTACH_FILE(
+    COMPANY_CD
+    ,ATTACH_ID -- 첨부파일마스터ID
+    ,SEQ -- 첨부파일 일련번호 
+    ,LFILE_NM -- 논리파일명 (실제)
+    ,PFILE_NM -- 물리파일명 (변환)
+    ,FILE_PATH -- 파일경로 
+    ,EXT -- 확장자 
+    ,FILE_SIZE -- 파일크기 
+    ,USE_YN -- 사용여부 
+    ,DEL_YN -- 삭제여부 
+    ,REG_DTTM -- 등록일 
+    ,REG_USER_ID -- 등록자 
+) VALUES (
+    #{c_cd}
+    ,#{attach_id}
+    ,#{file_seq}
+    ,#{lfile_nm}
+    ,#{pfile_nm}
+    ,#{file_path}
+    ,#{ext}
+    ,#{file_size}
+    ,'Y'
+    ,'N'
+    ,TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+    ,#{emp_id}    
+)
+
+
+
+-- select SEQ from EAC_APPROVAL_ITEM WHERE COMPANY_CD='PHARM' AND APPROVAL_ID='APP2015020400017'
+   2개 이상이 나올수 있음.. 
+
+-- 품의서첨부파일 EAC_APPROVAL_ATTACH 등록 
+INSERT INTO EAC_APPROVAL_ATTACH(
+    COMPANY_CD
+    ,APPROVAL_ID
+    ,SEQ -- 품의서 일련번호 
+    ,ATTACH_ID
+    ,APPROVAL_ATTACH_TP_CD  -- 품의서첨부파일유형코드 A 세미나사진 B 방명록 C 질의응답 D 카드세부 E 결과보고서 F 품의서 G 회의록
+    ,REG_DTTM
+    ,REG_USER_ID
+) VALUES (
+    #{c_cd}
+    ,#{approval_id}
+    ,#{approval_file_seq}  
+    ,#{attach_id}
+    ,#{approval_attach_tp_cd}
+    ,TO_CHAR (SYSDATE, 'YYYYMMDDHH24MISS')
+    ,#{emp_id}     
+)
+
+-- 마지막으로 물리적 파일 업로드 처리 해야 함.. 사이즈조절이 가능한지 체크해야 함..
+
+
+
+
+
+
+
+
+
+
+
+
+--
+SEMINAR_REPORT
+-- 
+rqName=작성자
+『eventName=ㄹㅇㄴ
+『date=2015-02-03
+『place=ㄴㅇㄹㄴㅇㄹ
+『numberOfpeople=ㄴㅇㄹㅇㄴㄹ
+『amount=ㄹㄴㅇㄹ
+『content=ㄴㅇㄹㄴㄹ
+
+
+MEET_REPORT
+-- 
+deptName=ㄹㄴㅇ
+『writer=ㄹㅇㄴ
+『meetName=ㄹㄴㅇㄹㄴㅇ
+『date=2015-02-03
+『time=ㄹㄴㅇ
+『numberOfpeople=ㅇㄴㄹ
+『externalList=ㄹㄹㅇ
+『internalList=ㄴㅇㄹ
+『content=ㄹㄴㅇㄹ
+

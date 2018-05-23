@@ -1,0 +1,1933 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ApprovalMapper">
+
+	<select id="selectApprovalList" parameterType="approvalMgmtVo" resultType="approvalMgmtVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT Z.* FROM
+				/** [ApprovalMapper.selectApprovalList] [결재할 - 결재할 문서 리스트 조회] */
+				(
+					(
+					SELECT
+						/** 품의서 상신중(NREQ)이고, 1차 결재자가 본인인 경우 */
+							A.COMPANY_CD						AS companyCd,
+							MAX (A.RQ_DATE)						AS rqDate,
+							MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+							MAX (A.RQ_USER_NM)					AS rqUserNm,
+							A.APPROVAL_ID						AS approvalId,
+							MAX (AL.SEQ)						AS seq,
+							MAX (F.FLAG)						AS flag,
+							MAX (A.ACCOUNT_NM)					AS accountNm,
+							MAX(TT.PRODUCT_NM)					AS productNm,
+							NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+							NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm
+								FROM
+									EAC_APPROVAL A,
+									EAC_APPROVAL_ITEM AD,
+									(
+									SELECT
+										COMPANY_CD, APPROVAL_ID, MIN (SEQ) SEQ
+											FROM EAC_APPROVAL_LINE
+												WHERE COMPANY_CD = #{companyCd}
+													<choose>
+														<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+															AND (AP_USER_ID = #{userId} OR AP_USER_ID = 'V'||#{deptCd}) 
+														</when>
+														<otherwise>
+															AND AP_USER_ID = #{userId} 
+														</otherwise>
+													</choose>
+														GROUP BY COMPANY_CD, APPROVAL_ID
+									) AL,
+									(
+									SELECT
+										/** 품의서 결재라인중 최종결재자 정보 */
+										AL.COMPANY_CD,
+										AL.APPROVAL_ID,
+										AL.AP_USER_ID,
+										AL.AP_USER_NM,
+										AL.AP_DEPT_CD,
+										AL.AP_DEPT_NM
+											FROM
+												EAC_APPROVAL_LINE AL,
+												(
+												SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+													FROM EAC_APPROVAL_LINE q1
+														WHERE q1.COMPANY_CD = #{companyCd}
+														GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+												) AL2
+													WHERE 1 = 1
+														AND AL.COMPANY_CD = AL2.COMPANY_CD
+														AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+														AND AL.SEQ = AL2.SEQ
+									) ALM,
+									(
+									SELECT COMPANY_CD, APPROVAL_ID, MAX(PRODUCT_NM) AS PRODUCT_NM
+										FROM EAC_APPROVAL_ITEM
+											WHERE COMPANY_CD = #{companyCd}
+											<if test="productCd != null and productCd != 'all'">
+												AND PRODUCT_CD = #{productCd}
+											</if>
+												GROUP BY COMPANY_CD, APPROVAL_ID
+									) TT,
+									(
+										SELECT
+											/** 1차 결재자가 준법경영팀이고, ACCOUNT_CD IN (3, 4) */
+											EAL.COMPANY_CD,
+											EAL.APPROVAL_ID,
+											CASE WHEN EA.ACCOUNT_CD IS NULL THEN '0' WHEN EA.ACCOUNT_CD IS NOT NULL THEN '1'
+											END AS FLAG
+												FROM
+													EAC_APPROVAL EA,
+													(
+													SELECT COMPANY_CD, APPROVAL_ID, AP_USER_ID, MAX(SEQ) FROM EAC_APPROVAL_LINE
+														WHERE 1 = 1
+															AND COMPANY_CD = #{companyCd}
+															AND SEQ = 1
+																GROUP BY COMPANY_CD, APPROVAL_ID, AP_USER_ID
+													) EAL
+														WHERE 1 = 1
+															AND EA.COMPANY_CD = EAL.COMPANY_CD
+															AND EA.APPROVAL_ID = EAL.APPROVAL_ID
+															AND EAL.AP_USER_ID = 'V52140'
+															AND EA.ACCOUNT_CD IN (3, 4)
+									) F
+										WHERE 1 = 1
+											AND A.COMPANY_CD = #{companyCd}
+											AND A.APPROVAL_STATUS_CD = 'NREQ'
+											AND AL.SEQ = 1
+											AND A.DEL_YN = 'N'
+											<if test="rqDate != null and rqDate != 'all'">
+												AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+												AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+											</if>
+											<if test="rqDeptNm != null and rqDeptNm != 'all'">
+												AND A.RQ_DEPT_NM = #{rqDeptNm}
+											</if>
+											<if test="rqUserNm != null and rqUserNm != 'all'">
+												AND A.RQ_USER_NM = #{rqUserNm}
+											</if>
+											AND A.COMPANY_CD = AD.COMPANY_CD
+											AND A.APPROVAL_ID = AD.APPROVAL_ID
+											AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+											AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											AND A.COMPANY_CD  = AL.COMPANY_CD
+											AND A.APPROVAL_ID = AL.APPROVAL_ID
+											AND A.COMPANY_CD = TT.COMPANY_CD
+											AND A.APPROVAL_ID = TT.APPROVAL_ID
+											AND A.COMPANY_CD = F.COMPANY_CD(+)
+											AND A.APPROVAL_ID = F.APPROVAL_ID(+)
+												GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+					)
+						UNION ALL
+					(
+					SELECT
+						/** 품의서 결재중(NING)이고, 결재할 사람이 본인인 경우 */
+							A.COMPANY_CD						AS companyCd,
+							MAX (A.RQ_DATE)						AS rqDate,
+							MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+							MAX (A.RQ_USER_NM)					AS rqUserNm,
+							A.APPROVAL_ID						AS approvalId,
+							MAX (ALN.SEQ)						AS seq,
+							'0'									AS flag,
+							MAX (A.ACCOUNT_NM)					AS accountNm,
+							MAX(TT.PRODUCT_NM)					AS productNm,
+							NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+							NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm
+								FROM
+									EAC_APPROVAL A,
+									EAC_APPROVAL_ITEM AD,
+									(
+									SELECT
+										/** 품의서 결재라인중 최종결재자 정보 */
+										AL.COMPANY_CD,
+										AL.APPROVAL_ID,
+										AL.AP_USER_ID,
+										AL.AP_USER_NM,
+										AL.AP_DEPT_CD,
+										AL.AP_DEPT_NM
+											FROM
+												EAC_APPROVAL_LINE AL,
+												(
+												SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+													FROM EAC_APPROVAL_LINE q1
+														WHERE q1.COMPANY_CD = #{companyCd}
+														GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+												) AL2
+													WHERE 1 = 1
+														AND AL.COMPANY_CD = AL2.COMPANY_CD
+														AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+														AND AL.SEQ = AL2.SEQ
+									) ALM,
+									(
+									SELECT
+										/** 품의서 결재라인중 지금 결재할 사람 정보 */
+										AL.SEQ,
+										AL.COMPANY_CD,
+										AL.APPROVAL_ID,
+										AL.AP_USER_ID,
+										AL.AP_USER_NM,
+										AL.AP_DEPT_CD,
+										AL.AP_DEPT_NM
+											FROM
+												EAC_APPROVAL_LINE AL,
+												(
+												SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MIN (q1.SEQ) SEQ
+													FROM EAC_APPROVAL_LINE q1
+														WHERE q1.COMPANY_CD = #{companyCd}
+														AND q1.APR_CD IS NULL
+															<choose>
+																<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+																	AND (q1.AP_USER_ID = #{userId} OR q1.AP_USER_ID = 'V'||#{deptCd}) 
+																</when>
+																<otherwise>
+																	AND q1.AP_USER_ID = #{userId} 
+																</otherwise>
+															</choose>
+														GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+												) AL2
+													WHERE 1 = 1
+														AND AL.COMPANY_CD = AL2.COMPANY_CD
+														AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+														AND AL.SEQ = AL2.SEQ
+									) ALN,
+									(
+									SELECT COMPANY_CD, APPROVAL_ID, MAX(PRODUCT_NM) AS PRODUCT_NM
+										FROM EAC_APPROVAL_ITEM
+											WHERE COMPANY_CD = #{companyCd}
+											<if test="productCd != null and productCd != 'all'">
+												AND PRODUCT_CD = #{productCd}
+											</if>
+												GROUP BY COMPANY_CD, APPROVAL_ID
+									) TT
+										WHERE 1 = 1
+											AND A.COMPANY_CD = #{companyCd}
+											AND A.APPROVAL_STATUS_CD = 'NING'
+											AND A.DEL_YN = 'N'
+											<if test="rqDate != null and rqDate != 'all'">
+												AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+												AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+											</if>
+											<if test="rqDeptNm != null and rqDeptNm != 'all'">
+												AND A.RQ_DEPT_NM = #{rqDeptNm}
+											</if>
+											<if test="rqUserNm != null and rqUserNm != 'all'">
+												AND A.RQ_USER_NM = #{rqUserNm}
+											</if>
+											AND A.COMPANY_CD = AD.COMPANY_CD
+											AND A.APPROVAL_ID = AD.APPROVAL_ID
+											AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+											AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											AND A.COMPANY_CD  = ALN.COMPANY_CD
+											AND A.APPROVAL_ID = ALN.APPROVAL_ID
+											AND A.COMPANY_CD  = TT.COMPANY_CD
+											AND A.APPROVAL_ID = TT.APPROVAL_ID
+												GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+					)
+				) Z
+					ORDER BY Z.rqDate DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="approvalCount" resultType="long" parameterType="approvalMgmtVo">
+		SELECT COUNT(1) FROM
+			/** [ApprovalMapper.approvalCount] [결재할 - 결재할 문서 리스트 카운트] */
+				(
+					(
+					SELECT
+						/** 품의서 상신중(NREQ)이고, 1차 결재자가 본인인 경우 */
+							A.COMPANY_CD						AS companyCd,
+							MAX (A.RQ_DATE)						AS rqDate,
+							MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+							MAX (A.RQ_USER_NM)					AS rqUserNm,
+							A.APPROVAL_ID						AS approvalId,
+							MAX (AL.SEQ)						AS seq,
+							MAX (F.FLAG)						AS flag,
+							MAX (A.ACCOUNT_NM)					AS accountNm,
+							MAX(TT.PRODUCT_NM)					AS productNm,
+							NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+							NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm
+								FROM
+									EAC_APPROVAL A,
+									EAC_APPROVAL_ITEM AD,
+									(
+									SELECT
+										COMPANY_CD, APPROVAL_ID, MIN (SEQ) SEQ
+											FROM EAC_APPROVAL_LINE
+												WHERE COMPANY_CD = #{companyCd}
+													<choose>
+														<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+															AND (AP_USER_ID = #{userId} OR AP_USER_ID = 'V'||#{deptCd}) 
+														</when>
+														<otherwise>
+															AND AP_USER_ID = #{userId} 
+														</otherwise>
+													</choose>
+														GROUP BY COMPANY_CD, APPROVAL_ID
+									) AL,
+									(
+									SELECT
+										/** 품의서 결재라인중 최종결재자 정보 */
+										AL.COMPANY_CD,
+										AL.APPROVAL_ID,
+										AL.AP_USER_ID,
+										AL.AP_USER_NM,
+										AL.AP_DEPT_CD,
+										AL.AP_DEPT_NM
+											FROM
+												EAC_APPROVAL_LINE AL,
+												(
+												SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+													FROM EAC_APPROVAL_LINE q1
+														WHERE q1.COMPANY_CD = #{companyCd}
+														GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+												) AL2
+													WHERE 1 = 1
+														AND AL.COMPANY_CD = AL2.COMPANY_CD
+														AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+														AND AL.SEQ = AL2.SEQ
+									) ALM,
+									(
+									SELECT COMPANY_CD, APPROVAL_ID, MAX(PRODUCT_NM) AS PRODUCT_NM
+										FROM EAC_APPROVAL_ITEM
+											WHERE COMPANY_CD = #{companyCd}
+											<if test="productCd != null and productCd != 'all'">
+												AND PRODUCT_CD = #{productCd}
+											</if>
+												GROUP BY COMPANY_CD, APPROVAL_ID
+									) TT,
+									(
+										SELECT
+											/** 1차 결재자가 준법경영팀이고, ACCOUNT_CD IN (3, 4) */
+											EAL.COMPANY_CD,
+											EAL.APPROVAL_ID,
+											CASE WHEN EA.ACCOUNT_CD IS NULL THEN '0' WHEN EA.ACCOUNT_CD IS NOT NULL THEN '1'
+											END AS FLAG
+												FROM
+													EAC_APPROVAL EA,
+													(
+													SELECT COMPANY_CD, APPROVAL_ID, AP_USER_ID, MAX(SEQ) FROM EAC_APPROVAL_LINE
+														WHERE 1 = 1
+															AND COMPANY_CD = #{companyCd}
+															AND SEQ = 1
+																GROUP BY COMPANY_CD, APPROVAL_ID, AP_USER_ID
+													) EAL
+														WHERE 1 = 1
+															AND EA.COMPANY_CD = EAL.COMPANY_CD
+															AND EA.APPROVAL_ID = EAL.APPROVAL_ID
+															AND EAL.AP_USER_ID = 'V52140'
+															AND EA.ACCOUNT_CD IN (3, 4)
+									) F
+										WHERE 1 = 1
+											AND A.COMPANY_CD = #{companyCd}
+											AND A.APPROVAL_STATUS_CD = 'NREQ'
+											AND AL.SEQ = 1
+											AND A.DEL_YN = 'N'
+											<if test="rqDate != null and rqDate != 'all'">
+												AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+												AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+											</if>
+											<if test="rqDeptNm != null and rqDeptNm != 'all'">
+												AND A.RQ_DEPT_NM = #{rqDeptNm}
+											</if>
+											<if test="rqUserNm != null and rqUserNm != 'all'">
+												AND A.RQ_USER_NM = #{rqUserNm}
+											</if>
+											AND A.COMPANY_CD = AD.COMPANY_CD
+											AND A.APPROVAL_ID = AD.APPROVAL_ID
+											AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+											AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											AND A.COMPANY_CD  = AL.COMPANY_CD
+											AND A.APPROVAL_ID = AL.APPROVAL_ID
+											AND A.COMPANY_CD = TT.COMPANY_CD
+											AND A.APPROVAL_ID = TT.APPROVAL_ID
+											AND A.COMPANY_CD = F.COMPANY_CD(+)
+											AND A.APPROVAL_ID = F.APPROVAL_ID(+)
+												GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+					)
+						UNION ALL
+					(
+					SELECT
+						/** 품의서 결재중(NING)이고, 결재할 사람이 본인인 경우 */
+							A.COMPANY_CD						AS companyCd,
+							MAX (A.RQ_DATE)						AS rqDate,
+							MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+							MAX (A.RQ_USER_NM)					AS rqUserNm,
+							A.APPROVAL_ID						AS approvalId,
+							MAX (ALN.SEQ)						AS seq,
+							'0'									AS flag,
+							MAX (A.ACCOUNT_NM)					AS accountNm,
+							MAX(TT.PRODUCT_NM)					AS productNm,
+							NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+							NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+							DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm
+								FROM
+									EAC_APPROVAL A,
+									EAC_APPROVAL_ITEM AD,
+									(
+									SELECT
+										/** 품의서 결재라인중 최종결재자 정보 */
+										AL.COMPANY_CD,
+										AL.APPROVAL_ID,
+										AL.AP_USER_ID,
+										AL.AP_USER_NM,
+										AL.AP_DEPT_CD,
+										AL.AP_DEPT_NM
+											FROM
+												EAC_APPROVAL_LINE AL,
+												(
+												SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+													FROM EAC_APPROVAL_LINE q1
+														WHERE q1.COMPANY_CD = #{companyCd}
+														GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+												) AL2
+													WHERE 1 = 1
+														AND AL.COMPANY_CD = AL2.COMPANY_CD
+														AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+														AND AL.SEQ = AL2.SEQ
+									) ALM,
+									(
+									SELECT
+										/** 품의서 결재라인중 지금 결재할 사람 정보 */
+										AL.SEQ,
+										AL.COMPANY_CD,
+										AL.APPROVAL_ID,
+										AL.AP_USER_ID,
+										AL.AP_USER_NM,
+										AL.AP_DEPT_CD,
+										AL.AP_DEPT_NM
+											FROM
+												EAC_APPROVAL_LINE AL,
+												(
+												SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MIN (q1.SEQ) SEQ
+													FROM EAC_APPROVAL_LINE q1
+														WHERE q1.COMPANY_CD = #{companyCd}
+														AND q1.APR_CD IS NULL
+															<choose>
+																<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+																	AND (q1.AP_USER_ID = #{userId} OR q1.AP_USER_ID = 'V'||#{deptCd}) 
+																</when>
+																<otherwise>
+																	AND q1.AP_USER_ID = #{userId} 
+																</otherwise>
+															</choose>
+														GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+												) AL2
+													WHERE 1 = 1
+														AND AL.COMPANY_CD = AL2.COMPANY_CD
+														AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+														AND AL.SEQ = AL2.SEQ
+									) ALN,
+									(
+									SELECT COMPANY_CD, APPROVAL_ID, MAX(PRODUCT_NM) AS PRODUCT_NM
+										FROM EAC_APPROVAL_ITEM
+											WHERE COMPANY_CD = #{companyCd}
+											<if test="productCd != null and productCd != 'all'">
+												AND PRODUCT_CD = #{productCd}
+											</if>
+												GROUP BY COMPANY_CD, APPROVAL_ID
+									) TT
+										WHERE 1 = 1
+											AND A.COMPANY_CD = #{companyCd}
+											AND A.APPROVAL_STATUS_CD = 'NING'
+											AND A.DEL_YN = 'N'
+											<if test="rqDate != null and rqDate != 'all'">
+												AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+												AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+											</if>
+											<if test="rqDeptNm != null and rqDeptNm != 'all'">
+												AND A.RQ_DEPT_NM = #{rqDeptNm}
+											</if>
+											<if test="rqUserNm != null and rqUserNm != 'all'">
+												AND A.RQ_USER_NM = #{rqUserNm}
+											</if>
+											AND A.COMPANY_CD = AD.COMPANY_CD
+											AND A.APPROVAL_ID = AD.APPROVAL_ID
+											AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+											AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											AND A.COMPANY_CD  = ALN.COMPANY_CD
+											AND A.APPROVAL_ID = ALN.APPROVAL_ID
+											AND A.COMPANY_CD  = TT.COMPANY_CD
+											AND A.APPROVAL_ID = TT.APPROVAL_ID
+												GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+					)
+				)
+	</select>
+
+	<select id="selectApprovalProgressList" parameterType="approvalMgmtVo" resultType="approvalMgmtVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT Z.* FROM
+				/** [ApprovalMapper.selectApprovalProgressList] [결재할 - 진행중 문서 리스트 조회] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+						MAX (A.RQ_USER_NM)					AS rqUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX(A.APPROVAL_DATE)				AS aprDate
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									COMPANY_CD, APPROVAL_ID
+										FROM EAC_APPROVAL_LINE
+											WHERE COMPANY_CD = #{companyCd}
+												<choose>
+													<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+														AND (AP_USER_ID = #{userId} OR AP_USER_ID = 'V'||#{deptCd}) 
+													</when>
+													<otherwise>
+														AND AP_USER_ID = #{userId} 
+													</otherwise>
+												</choose>
+													GROUP BY COMPANY_CD, APPROVAL_ID
+								) AL,
+								(
+								SELECT
+									/** 품의서 결재라인중 최종결재자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD = 'NING'
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+										AND A.COMPANY_CD  = AL.COMPANY_CD
+										AND A.APPROVAL_ID = AL.APPROVAL_ID
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				) Z
+					ORDER BY Z.rqDate DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="approvalProgressCount" resultType="long" parameterType="approvalMgmtVo">
+		SELECT COUNT(1) FROM
+			/** [ApprovalMapper.approvalProgressCount] [결재할 - 진행중 문서 리스트 카운트] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+						MAX (A.RQ_USER_NM)					AS rqUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX(A.APPROVAL_DATE)				AS aprDate
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									COMPANY_CD, APPROVAL_ID
+										FROM EAC_APPROVAL_LINE
+											WHERE COMPANY_CD = #{companyCd}
+												<choose>
+													<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+														AND (AP_USER_ID = #{userId} OR AP_USER_ID = 'V'||#{deptCd}) 
+													</when>
+													<otherwise>
+														AND AP_USER_ID = #{userId} 
+													</otherwise>
+												</choose>
+													GROUP BY COMPANY_CD, APPROVAL_ID
+								) AL,
+								(
+								SELECT
+									/** 품의서 결재라인중 최종결재자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD = 'NING'
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+										AND A.COMPANY_CD  = AL.COMPANY_CD
+										AND A.APPROVAL_ID = AL.APPROVAL_ID
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				)
+	</select>
+
+	<select id="selectApprovalCompleteList" parameterType="approvalMgmtVo" resultType="approvalMgmtVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT Z.* FROM
+				/** [ApprovalMapper.selectApprovalCompleteList] [결재할 - 완료 문서 리스트 조회] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+						MAX (A.RQ_USER_NM)					AS rqUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX(A.APPROVAL_DATE)				AS aprDate
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									COMPANY_CD, APPROVAL_ID
+										FROM EAC_APPROVAL_LINE
+											WHERE COMPANY_CD = #{companyCd}
+												<choose>
+													<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+														AND (AP_USER_ID = #{userId} OR AP_USER_ID = 'V'||#{deptCd}) 
+													</when>
+													<otherwise>
+														AND AP_USER_ID = #{userId} 
+													</otherwise>
+												</choose>
+													GROUP BY COMPANY_CD, APPROVAL_ID
+								) AL,
+								(
+								SELECT
+									/** 품의서 결재라인중 최종결재자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										<if test="approvalStatusCd != null">
+											<if test="approvalStatusCd == 'all'">
+												AND A.APPROVAL_STATUS_CD IN ('NREJ', 'NAPR', 'EAPR')
+											</if>
+											<if test="approvalStatusCd != 'all'">
+												AND A.APPROVAL_STATUS_CD = #{approvalStatusCd}
+											</if>
+										</if>
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+										AND A.COMPANY_CD  = AL.COMPANY_CD
+										AND A.APPROVAL_ID = AL.APPROVAL_ID
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				) Z
+					ORDER BY Z.rqDate DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="approvalCompleteCount" resultType="long" parameterType="approvalMgmtVo">
+		SELECT COUNT(1) FROM
+			/** [ApprovalMapper.approvalCompleteCount] [결재할 - 완료 문서 리스트 카운트] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (A.RQ_DEPT_NM)					AS rqDeptNm,
+						MAX (A.RQ_USER_NM)					AS rqUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX(A.APPROVAL_DATE)				AS aprDate
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									COMPANY_CD, APPROVAL_ID
+										FROM EAC_APPROVAL_LINE
+											WHERE COMPANY_CD = #{companyCd}
+												<choose>
+													<when test="deptCd == '53210' or deptCd == '54110' or deptCd == '54120' or deptCd == '52140'">
+														AND (AP_USER_ID = #{userId} OR AP_USER_ID = 'V'||#{deptCd}) 
+													</when>
+													<otherwise>
+														AND AP_USER_ID = #{userId} 
+													</otherwise>
+												</choose>
+													GROUP BY COMPANY_CD, APPROVAL_ID
+								) AL,
+								(
+								SELECT
+									/** 품의서 결재라인중 최종결재자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										<if test="approvalStatusCd != null">
+											<if test="approvalStatusCd == 'all'">
+												AND A.APPROVAL_STATUS_CD IN ('NREJ', 'NAPR', 'EAPR')
+											</if>
+											<if test="approvalStatusCd != 'all'">
+												AND A.APPROVAL_STATUS_CD = #{approvalStatusCd}
+											</if>
+										</if>
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+										AND A.COMPANY_CD  = AL.COMPANY_CD
+										AND A.APPROVAL_ID = AL.APPROVAL_ID
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				)
+	</select>
+
+	<select id="selectProgressList" parameterType="approvalMgmtVo" resultType="approvalMgmtVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT Z.* FROM
+				/** [ApprovalMapper.selectProgressList] [진행중 문서 리스트 조회] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (ALM.AP_DEPT_NM)				AS apDeptNm,
+						MAX (ALM.AP_USER_NM)				AS apUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX(A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						MAX(A.RQ_USER_ID)					AS rqUserId,
+						MAX(A.RQ_USER_NM)					AS rqUserNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT COMPANY_CD, APPROVAL_ID, MAX(SEQ) AS SEQ
+												FROM EAC_APPROVAL_LINE
+													WHERE COMPANY_CD = #{companyCd}
+														GROUP BY COMPANY_CD, APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD IN ('NREQ', 'NING', 'SR', 'SING')
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										<if test="userId != null">
+											AND (A.RQ_USER_ID = #{userId} OR A.RRQ_USER_ID = #{userId})
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				) Z
+					ORDER BY Z.rqDate DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="progressCount" resultType="long" parameterType="approvalMgmtVo">
+		SELECT COUNT(1) FROM
+			/** [ApprovalMapper.progressCount] [진행중 문서 리스트 카운트] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (ALM.AP_DEPT_NM)				AS apDeptNm,
+						MAX (ALM.AP_USER_NM)				AS apUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX(A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						MAX(A.RQ_USER_ID)					AS rqUserId,
+						MAX(A.RQ_USER_NM)					AS rqUserNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT COMPANY_CD, APPROVAL_ID, MAX(SEQ) AS SEQ
+												FROM EAC_APPROVAL_LINE
+													WHERE COMPANY_CD = #{companyCd}
+														GROUP BY COMPANY_CD, APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD IN ('NREQ', 'NING', 'SR', 'SING')
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										<if test="userId != null">
+											AND (A.RQ_USER_ID = #{userId} OR A.RRQ_USER_ID = #{userId})
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				)
+	</select>
+
+	<select id="selectCompleteList" parameterType="approvalMgmtVo" resultType="approvalMgmtVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT Z.* FROM
+				/** [ApprovalMapper.selectCompleteList] [완료 문서 리스트 조회] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (ALM.AP_DEPT_NM)				AS lastApDeptNm,
+						MAX (ALM.AP_USER_NM)				AS lastApUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						MAX(A.RQ_USER_ID)					AS rqUserId,
+						MAX(A.RQ_USER_NM)					AS rqUserNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX(A.APPROVAL_DATE)				AS aprDate
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									/** 품의서 결재라인중 최종결재자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD IN ('NAPR','EAPR','SAPR')
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										<if test="userId != null">
+											AND (A.RQ_USER_ID = #{userId} OR A.RRQ_USER_ID = #{userId})
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				) Z
+					ORDER BY Z.rqDate DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="completeCount" resultType="long" parameterType="approvalMgmtVo">
+		SELECT COUNT(1) FROM
+			/** [ApprovalMapper.completeCount] [완료 문서 리스트 카운트] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (ALM.AP_DEPT_NM)				AS lastApDeptNm,
+						MAX (ALM.AP_USER_NM)				AS lastApUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						MAX(A.RQ_USER_ID)					AS rqUserId,
+						MAX(A.RQ_USER_NM)					AS rqUserNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX(A.APPROVAL_DATE)				AS aprDate
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									/** 품의서 결재라인중 최종결재자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD IN ('NAPR','EAPR','SAPR')
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										<if test="userId != null">
+											AND (A.RQ_USER_ID = #{userId} OR A.RRQ_USER_ID = #{userId})
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				)
+	</select>
+
+	<select id="selectRestoreList" parameterType="approvalMgmtVo" resultType="approvalMgmtVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT Z.* FROM
+				/** [ApprovalMapper.selectRestoreList] [반려 문서 리스트 조회] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (ALM.AP_DEPT_NM)				AS rejApDeptNm,
+						MAX (ALM.AP_USER_NM)				AS rejApUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						MAX(A.RQ_USER_ID)					AS rqUserId,
+						MAX(A.RQ_USER_NM)					AS rqUserNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX (ALM.APR_DATE)					AS rejDate,
+						MAX (ALM.APR_COMMENT)				AS rejComment
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									/** 품의서 결재라인중 반려자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM,
+									AL.APR_COMMENT,
+									AL.APR_DATE
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													AND Q1.APR_CD = 'REJ'
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD IN ('NREJ','SREJ')
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										<if test="userId != null">
+											AND (A.RQ_USER_ID = #{userId} OR A.RRQ_USER_ID = #{userId})
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				) Z
+					ORDER BY Z.rqDate DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="restoreCount" resultType="long" parameterType="approvalMgmtVo">
+		SELECT COUNT(1) FROM
+			/** [ApprovalMapper.restoreCount] [반려 문서 리스트 카운트] */
+				(
+				SELECT
+						A.COMPANY_CD						AS companyCd,
+						MAX (A.RQ_DATE)						AS rqDate,
+						MAX (ALM.AP_DEPT_NM)				AS rejApDeptNm,
+						MAX (ALM.AP_USER_NM)				AS rejApUserNm,
+						A.APPROVAL_ID						AS approvalId,
+						MAX (A.ACCOUNT_NM)					AS accountNm,
+						NVL (COUNT (AD.SEQ), 0)				AS itemCount,
+						NVL (SUM (REQUEST_AMOUNT), 0)		AS requestAmount,
+						MAX(A.APPROVAL_STATUS_CD)			AS approvalStatusCd,
+						FN_GET_COM_CD('PHARM', 'APPROVAL_STATUS_CD' ,MAX(A.APPROVAL_STATUS_CD))		AS approvalStatusNm,
+						MAX(A.RQ_USER_ID)					AS rqUserId,
+						MAX(A.RQ_USER_NM)					AS rqUserNm,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_ID))		AS rrqUserId,
+						DECODE(MAX(A.RRQ_USER_ID), MAX(A.RQ_USER_ID), NULL, MAX(A.RRQ_USER_NM))		AS rrqUserNm,
+						MAX (ALM.APR_DATE)					AS rejDate,
+						MAX (ALM.APR_COMMENT)				AS rejComment
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD,
+								(
+								SELECT
+									/** 품의서 결재라인중 반려자 정보 */
+									AL.COMPANY_CD,
+									AL.APPROVAL_ID,
+									AL.AP_USER_ID,
+									AL.AP_USER_NM,
+									AL.AP_DEPT_CD,
+									AL.AP_DEPT_NM,
+									AL.APR_COMMENT,
+									AL.APR_DATE
+										FROM
+											EAC_APPROVAL_LINE AL,
+											(
+											SELECT q1.COMPANY_CD, q1.APPROVAL_ID, MAX (q1.SEQ) SEQ
+												FROM EAC_APPROVAL_LINE q1
+													WHERE q1.COMPANY_CD = #{companyCd}
+													AND Q1.APR_CD = 'REJ'
+													GROUP BY q1.COMPANY_CD, q1.APPROVAL_ID
+											) AL2
+												WHERE 1 = 1
+													AND AL.COMPANY_CD = AL2.COMPANY_CD
+													AND AL.APPROVAL_ID = AL2.APPROVAL_ID
+													AND AL.SEQ = AL2.SEQ
+								) ALM
+									WHERE 1 = 1
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_STATUS_CD IN ('NREJ','SREJ')
+										AND A.DEL_YN = 'N'
+										<if test="rqDate != null and rqDate != 'all'">
+											AND A.RQ_DATE <![CDATA[>=]]> TO_DATE(#{rqDate}||'000000','YYYY-MM-DDHH24MISS')
+											AND A.RQ_DATE <![CDATA[<=]]> TO_DATE(#{rqDate}||'235959','YYYY-MM-DDHH24MISS')
+										</if>
+										<if test="userId != null">
+											AND (A.RQ_USER_ID = #{userId} OR A.RRQ_USER_ID = #{userId})
+										</if>
+										AND A.COMPANY_CD = AD.COMPANY_CD
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = ALM.COMPANY_CD(+)
+										AND A.APPROVAL_ID = ALM.APPROVAL_ID(+)
+											GROUP BY A.COMPANY_CD, A.APPROVAL_ID
+				)
+	</select>
+
+	<update id="updateApprovalCode" parameterType="approvalLineVo">
+		UPDATE
+			/** [ApprovalMapper.updateApprovalCode] [결재라인 테이블 - 결재코드 업데이트] */
+				EAC_APPROVAL_LINE
+					SET
+						APR_CD = #{aprCd},
+						APR_COMMENT = #{aprComment, jdbcType=VARCHAR},
+						APR_DATE = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						ACT_USER_ID = #{actUserId, jdbcType=VARCHAR},
+						ACT_USER_NM	= #{actUserNm, jdbcType=VARCHAR},
+						ACT_DEPT_CD = #{actDeptCd, jdbcType=VARCHAR},
+						ACT_DEPT_NM	= #{actDeptNm, jdbcType=VARCHAR},
+						ACT_TITLE_CD = #{actTitleCd, jdbcType=VARCHAR},
+						ACT_TITLE_NM = #{actTitleNm, jdbcType=VARCHAR},
+						ACT_DUTY_CD = #{actDutyCd, jdbcType=VARCHAR},
+						ACT_DUTY_NM = #{actDutyNm, jdbcType=VARCHAR},
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ = #{seq}
+								AND APR_CD IS NULL
+	</update>
+
+	<select id="selectApprovalLineList" parameterType="approvalMgmtVo" resultType="approvalLineVo">
+		SELECT Z.* FROM
+			/** [ApprovalMapper.selectApprovalLineList] [정산서 - 결재정보 조회] */
+				(
+					(
+					SELECT
+						RQ_DEPT_NM AS apDeptNm,
+						RQ_USER_NM AS apUserNm,
+						RQ_DUTY_NM AS apDutyNm,
+						'상신' AS aprCd,
+						TO_CHAR(RQ_DATE, 'YYYYMMDDHH24MISS') AS aprDate,
+						NVL(RQ_OPINION, '') AS aprComment
+							FROM EAC_APPROVAL
+								WHERE 1 = 1
+									AND COMPANY_CD = #{companyCd}
+									AND APPROVAL_ID = #{approvalId}
+					)
+						UNION ALL
+					(
+					SELECT
+						CASE WHEN ACT_DEPT_NM IS NULL THEN AP_DEPT_NM WHEN ACT_DEPT_NM IS NOT NULL THEN ACT_DEPT_NM END AS apDeptNm,
+						CASE WHEN ACT_USER_NM IS NULL THEN AP_USER_NM WHEN ACT_USER_NM IS NOT NULL THEN ACT_USER_NM END AS apUserNm,
+						CASE WHEN ACT_DUTY_NM IS NULL THEN AP_DUTY_NM WHEN ACT_DUTY_NM IS NOT NULL THEN ACT_DUTY_NM END AS apDutyNm,
+						CASE WHEN APR_CD IS NULL THEN ' ' WHEN APR_CD IS NOT NULL THEN (
+																						SELECT COM_CD_NM FROM SYS_COM_CD
+																							WHERE 1 = 1
+																								AND USE_YN = 'Y'
+																								AND DEL_YN = 'N'
+																								AND COMPANY_CD = #{companyCd}
+																								AND COM_CD_GRP_ID = 'APR_CD'
+																								AND COM_CD = APR_CD) END AS aprCd,
+						NVL(APR_DATE, '') AS aprDate,
+						NVL(APR_COMMENT, '') AS aprComment
+						FROM EAC_APPROVAL_LINE
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ <![CDATA[>]]> 0
+					)
+				) Z
+	</select>
+
+	<select id="selectApprovalItemList" parameterType="approvalMgmtVo" resultType="approvalItemVo">
+		SELECT
+			/** [ApprovalMapper.selectApprovalItemList] [정산서 - 카드사용내역 조회] */
+				EAI.SEQ AS seq,
+				EAI.AUTH_DATE AS authDate,
+				EAI.MERC_NAME AS mercName,
+				EAI.REQUEST_AMOUNT AS requestAmount,
+				EAI.USER_NM AS userName,
+				EA.BUDGET_DEPT_NM AS budgetDeptNm,
+				EA.ACCOUNT_NM AS accountNm,
+				EAI.ACCOUNT2_CD AS account2Cd,
+				EAI.ACCOUNT2_NM AS account2Nm,
+				EAI.ACCOUNT_SP_NM AS accountSpNm,
+				EAI.PRODUCT_NM AS productNm,
+				EAI.CUSTOMER_NM AS customerNm,
+				EAI.FTR_CD AS ftrCd,
+				EAI.SEMINAR_REPORT AS seminarReport,
+				EAI.DETAILS AS details,
+				(
+				SELECT ATTACH_ID FROM EAC_APPROVAL_ATTACH
+					WHERE 1 = 1
+						AND COMPANY_CD(+) = EA.APPROVAL_ID
+						AND APPROVAL_ID(+) = EA.COMPANY_CD
+						AND SEQ(+) = EAI.SEQ
+				) AS attachId,
+				EAI.MERC_ADDR AS mercAddr,
+				EAI.MCC_NAME AS mccName,
+				EAI.AUTH_TIME AS authTime
+					FROM
+						EAC_APPROVAL EA,
+						EAC_APPROVAL_ITEM EAI
+							WHERE 1 = 1
+								AND EA.COMPANY_CD = EAI.COMPANY_CD
+								AND EA.APPROVAL_ID = EAI.APPROVAL_ID
+								AND EA.COMPANY_CD = #{companyCd}
+								AND EA.APPROVAL_ID = #{approvalId}
+								AND EAI.SEQ <![CDATA[>]]> 0
+	</select>
+
+	<select id="validFirstApprovalCode" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validFirstApprovalCode] [정산서 - 1차 결재자의 결재 여부 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL_LINE
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ = 1
+								AND APR_CD IS NULL
+	</select>
+
+	<select id="validMyApproval" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validMyApproval] [정산서 - 본인이 상신자인지 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND RQ_USER_ID = #{rqUserId}
+	</select>
+
+	<update id="updateApprovalStatusCode" parameterType="approvalMgmtVo">
+		UPDATE
+			/** [ApprovalMapper.updateApprovalStatusCode] [품의서 테이블 - 결재진행상태 업데이트] */
+				EAC_APPROVAL
+					SET
+						APPROVAL_DATE = SYSDATE,
+						APPROVAL_STATUS_CD = #{approvalStatusCd},
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+	</update>
+
+	<select id="validAccountCode" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validAccountCode] [정산서 - 품의서가 심포지움 건이 아닌지 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND ACCOUNT_CD != '2'
+	</select>
+
+	<insert id="insertApproval" parameterType="approvalMgmtVo">
+		<selectKey resultType="java.lang.String" keyProperty="newApprovalId" order="BEFORE">
+			SELECT
+				'APP' || TO_CHAR(SYSDATE, 'YYYYMMDD') || LPAD(SEQ_APP.NEXTVAL, 5, '0')
+					FROM DUAL
+		</selectKey>
+		INSERT INTO
+			/** [ApprovalMapper.insertApproval] [재품의 - 품의서 테이블 복사] */
+				EAC_APPROVAL
+					(
+						COMPANY_CD,
+						APPROVAL_ID,
+						APPROVAL_STATUS_CD,
+						ACCOUNT_CD,
+						ACCOUNT_NM,
+						BUDGET_DEPT_CD,
+						BUDGET_DEPT_NM,
+						RQ_USER_ID,
+						RQ_USER_NM,
+						RQ_DEPT_CD,
+						RQ_DEPT_NM,
+						RQ_TITLE_CD,
+						RQ_TITLE_NM,
+						RQ_DUTY_CD,
+						RQ_DUTY_NM,
+						DEL_YN,
+						CHANNEL_TP_CD,
+						REG_DTTM,
+						REG_USER_ID
+					)
+						SELECT
+							COMPANY_CD,
+							#{newApprovalId},
+							'T',
+							ACCOUNT_CD,
+							ACCOUNT_NM,
+							BUDGET_DEPT_CD,
+							BUDGET_DEPT_NM,
+							RQ_USER_ID,
+							RQ_USER_NM,
+							RQ_DEPT_CD,
+							RQ_DEPT_NM,
+							RQ_TITLE_CD,
+							RQ_TITLE_NM,
+							RQ_DUTY_CD,
+							RQ_DUTY_NM,
+							'N',
+							CHANNEL_TP_CD,
+							TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+							#{rqUserId}
+								FROM
+									EAC_APPROVAL
+										WHERE 1 = 1
+											AND COMPANY_CD = #{companyCd}
+											AND APPROVAL_ID = #{approvalId}
+											AND RQ_USER_ID = #{rqUserId}
+	</insert>
+
+	<insert id="insertApprovalItem" parameterType="approvalMgmtVo">
+		INSERT INTO
+			/** [ApprovalMapper.insertApprovalItem] [재품의 - 품의내역 테이블 복사] */
+				EAC_APPROVAL_ITEM
+				(
+					COMPANY_CD,
+					APPROVAL_ID,
+					SEQ,
+					S_APPROVAL_ID,
+					S_APPROVAL_SEQ,
+					CUSTOMER_CD,
+					CUSTOMER_NM,
+					SAUP_NO,
+					USER_ID,
+					USER_NM,
+					ACCOUNT2_CD,
+					ACCOUNT2_NM,
+					ACCOUNT_SP_CD,
+					ACCOUNT_SP_NM,
+					PRODUCT_CD,
+					PRODUCT_NM,
+					FTR_CD,
+					DETAILS,
+					OPINION,
+					MEET_REPORT,
+					SEMINAR_REPORT,
+					CARD_OWNER_ID,
+					CARD_OWNER_NM,
+					CARD_OWNER_DEPT_CD,
+					CARD_OWNER_DEPT_NM,
+					CARD_OWNER_TITLE_CD,
+					CARD_OWNER_TITLE_NM,
+					CARD_OWNER_DUTY_CD,
+					CARD_OWNER_DUTY_NM,
+					AP_GEORAE_CAND,
+					CARD_NUM,
+					AUTH_DATE,
+					AUTH_NUM,
+					GEORAE_STAT,
+					REQUEST_AMOUNT,
+					GEORAE_COLL,
+					MERC_NAME,
+					SETT_DATE,
+					OWNER_REG_NO,
+					CARD_CODE,
+					CARD_NAME,
+					USER_NAME,
+					AUTH_TIME,
+					AQUI_DATE,
+					GEORAE_CAND,
+					AMT_AMOUNT,
+					VAT_AMOUNT,
+					SER_AMOUNT,
+					FRE_AMOUNT,
+					AMT_MD_AMOUNT,
+					VAT_MD_AMOUNT,
+					GEORAE_GUKGA,
+					FOR_AMOUNT,
+					USD_AMOUNT,
+					AQUI_RATE,
+					MERC_SAUP_NO,
+					MERC_ADDR,
+					MERC_REPR,
+					MERC_TEL,
+					MERC_ZIP,
+					MCC_NAME,
+					MCC_CODE,
+					MCC_STAT,
+					VAT_STAT,
+					CAN_DATE,
+					ASK_SITE,
+					SITE_DATE,
+					ASK_DATE,
+					ASK_TIME,
+					GONGJE_NO_CHK,
+					CREATEDATE,
+					CREATETIME,
+					SEND_YN,
+					AQUI_TIME,
+					CONVERSION_FEE,
+					ORG_COLL,
+					CARD_KIND,
+					SETT_DAY,
+					SETT_BANKCODE,
+					SETT_ACCO,
+					JUMIN_NO,
+					FINANCE_DATE,
+					FINANCE_SEQ,
+					FINANCE_NO,
+					JUNPYO_INS_DATE,
+					JUNPYO_ST_CD,
+					REG_DTTM,
+					REG_USER_ID
+				)
+					SELECT
+						COMPANY_CD,
+						#{newApprovalId},
+						ROWNUM,
+						S_APPROVAL_ID,
+						S_APPROVAL_SEQ,
+						CUSTOMER_CD,
+						CUSTOMER_NM,
+						SAUP_NO,
+						USER_ID,
+						USER_NM,
+						ACCOUNT2_CD,
+						ACCOUNT2_NM,
+						ACCOUNT_SP_CD,
+						ACCOUNT_SP_NM,
+						PRODUCT_CD,
+						PRODUCT_NM,
+						FTR_CD,
+						DETAILS,
+						OPINION,
+						MEET_REPORT,
+						SEMINAR_REPORT,
+						CARD_OWNER_ID,
+						CARD_OWNER_NM,
+						CARD_OWNER_DEPT_CD,
+						CARD_OWNER_DEPT_NM,
+						CARD_OWNER_TITLE_CD,
+						CARD_OWNER_TITLE_NM,
+						CARD_OWNER_DUTY_CD,
+						CARD_OWNER_DUTY_NM,
+						AP_GEORAE_CAND,
+						CARD_NUM,
+						AUTH_DATE,
+						AUTH_NUM,
+						GEORAE_STAT,
+						REQUEST_AMOUNT,
+						GEORAE_COLL,
+						MERC_NAME,
+						SETT_DATE,
+						OWNER_REG_NO,
+						CARD_CODE,
+						CARD_NAME,
+						USER_NAME,
+						AUTH_TIME,
+						AQUI_DATE,
+						GEORAE_CAND,
+						AMT_AMOUNT,
+						VAT_AMOUNT,
+						SER_AMOUNT,
+						FRE_AMOUNT,
+						AMT_MD_AMOUNT,
+						VAT_MD_AMOUNT,
+						GEORAE_GUKGA,
+						FOR_AMOUNT,
+						USD_AMOUNT,
+						AQUI_RATE,
+						MERC_SAUP_NO,
+						MERC_ADDR,
+						MERC_REPR,
+						MERC_TEL,
+						MERC_ZIP,
+						MCC_NAME,
+						MCC_CODE,
+						MCC_STAT,
+						VAT_STAT,
+						CAN_DATE,
+						ASK_SITE,
+						SITE_DATE,
+						ASK_DATE,
+						ASK_TIME,
+						GONGJE_NO_CHK,
+						CREATEDATE,
+						CREATETIME,
+						SEND_YN,
+						AQUI_TIME,
+						CONVERSION_FEE,
+						ORG_COLL,
+						CARD_KIND,
+						SETT_DAY,
+						SETT_BANKCODE,
+						SETT_ACCO,
+						JUMIN_NO,
+						NULL,
+						NULL,
+						NULL,
+						NULL,
+						'0',
+						TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS'),
+						#{rqUserId}
+							FROM
+								EAC_APPROVAL_ITEM
+									WHERE 1 = 1
+										AND COMPANY_CD = #{companyCd}
+										AND APPROVAL_ID = #{approvalId}
+											ORDER BY SEQ ASC
+	</insert>
+
+	<select id="validApprovalStatusCode" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validApprovalStatusCode] [정산서 - 품의서의 결재진행상태 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND APPROVAL_STATUS_CD = #{approvalStatusCd}
+	</select>
+
+	<select id="validLastApprovalUser" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validLastApprovalUser] [정산서 - 본인이 최종 결재자인지 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL_LINE
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ =
+								(
+									SELECT SEQ FROM
+										(
+										SELECT * FROM EAC_APPROVAL_LINE
+											WHERE 1 = 1
+												AND COMPANY_CD = #{companyCd}
+												AND APPROVAL_ID = #{approvalId}
+													ORDER BY SEQ DESC
+										)
+											WHERE 1 = 1
+												AND AP_USER_ID = #{rqUserId}
+												AND ROWNUM <![CDATA[<=]]> 1
+								)
+	</select>
+
+	<insert id="insertInterfaceData" parameterType="approvalMgmtVo">
+		INSERT INTO
+			/** [ApprovalMapper.insertInterfaceData] [최종 결재자 승인 후 인터페이스 전송] */
+				A5992_IFI_AP
+				(
+					COMPANY_CD, APPROVAL_ID, APPROVAL_SEQ,
+					APPROVAL_DATE, APPROVAL_TIME, ACCOUNT_CD,
+					ACCOUNT_NM, BUDGET_DEPT_CD, BUDGET_DEPT_NM,
+					CUSTOMER_CD, CUSTOMER_NM, SAUP_NO,
+					USER_ID, USER_NM, ACCOUNT2_CD,
+					ACCOUNT2_NM, ACCOUNT_EXP_CD, ACCOUNT_EXP_NM,
+					PRODUCT_CD, PRODUCT_NM, FTR_CD,
+					DETAILS, OPINION, CARD_OWNER_ID,
+					CARD_OWNER_NM, CARD_OWNER_DEPT_CD, CARD_OWNER_DEPT_NM,
+					CARD_OWNER_TITLE_CD, CARD_OWNER_TITLE_NM, CARD_OWNER_DUTY_CD,
+					CARD_OWNER_DUTY_NM, CARD_NO, GEORAE_DATE,
+					ADMISSION_NO, REQUEST_AMOUNT, AQUI_COLL,
+					AQUI_STAT, MERC_NAME, SETT_DATE,
+					OWNER_REG_NO, CARD_CODE, GEORAE_NAME,
+					USER_NAME, AUTH_TIME, AQUI_DATE,
+					AQUI_CAND, WON_AMOUNT, VAT_AMOUNT,
+					SER_AMOUNT, FRE_AMOUNT, AMT_MD_AMOUNT,
+					VAT_MD_AMOUNT, GEORAE_GUKGA, USD_AMOUNT,
+					AQUI_DOLL, AQUI_RATE, MERC_SAUP_NO,
+					MERC_ADDR, MERC_REPR, MERC_TEL,
+					MERC_ZIP, MERC_UPJONG, MCC_CODE,
+					UPJONG_STAT, VAT_STAT, CAN_DATE,
+					ASK_SITE, SITE_DATE, ASK_DATE,
+					ASK_TIME, GONGJE_NO_CHK, AQUI_TIME,
+					CONVERSION_FEE, ORG_COLL, UNIQUE_NO,
+					CARD_KIND, SETT_DAY, SETT_BANKCODE,
+					SETT_ACCO, JUMIN_NO, IF_DATE,
+					JUNPYO_STATUS, FINANCE_DATE, FINANCE_SEQ,
+					FINANCE_REC1, FINANCE_REC2, FINANCE_REC3,
+					JUNPYO_INS_USER, JUNPYO_INS_DATE, ERR_CHK, ERR_MSG
+				)
+					SELECT
+						A.COMPANY_CD, A.APPROVAL_ID, AD.SEQ,
+						TO_CHAR(A.APPROVAL_DATE,'YYYYMMDD'), TO_CHAR(A.APPROVAL_DATE,'HH24MISS'), A.ACCOUNT_CD,
+						A.ACCOUNT_NM, A.BUDGET_DEPT_CD, A.BUDGET_DEPT_NM,
+						AD.CUSTOMER_CD, AD.CUSTOMER_NM, AD.SAUP_NO,
+						AD.USER_ID, AD.USER_NM, AD.ACCOUNT2_CD,
+						AD.ACCOUNT2_NM, AD.ACCOUNT_SP_CD, AD.ACCOUNT_SP_NM,
+						AD.PRODUCT_CD, AD.PRODUCT_NM, AD.FTR_CD,
+						AD.DETAILS, AD.OPINION, AD.CARD_OWNER_ID,
+						AD.CARD_OWNER_NM, AD.CARD_OWNER_DEPT_CD, AD.CARD_OWNER_DEPT_NM,
+						AD.CARD_OWNER_TITLE_CD, AD.CARD_OWNER_TITLE_NM, AD.CARD_OWNER_DUTY_CD,
+						AD.CARD_OWNER_DUTY_NM, AD.CARD_NUM, AD.AUTH_DATE,
+						AD.AUTH_NUM, AD.REQUEST_AMOUNT, AD.GEORAE_COLL,
+						AD.GEORAE_STAT, AD.MERC_NAME, AD.SETT_DATE,
+						AD.OWNER_REG_NO, AD.CARD_CODE, AD.CARD_NAME,
+						AD.USER_NAME, AD.AUTH_TIME, AD.AQUI_DATE,
+						AD.GEORAE_CAND, AD.AMT_AMOUNT, AD.VAT_AMOUNT,
+						AD.SER_AMOUNT, AD.FRE_AMOUNT, AD.AMT_MD_AMOUNT,
+						AD.VAT_MD_AMOUNT, AD.GEORAE_GUKGA, AD.USD_AMOUNT,
+						AD.USD_AMOUNT, AD.AQUI_RATE, AD.MERC_SAUP_NO,
+						AD.MERC_ADDR, AD.MERC_REPR, AD.MERC_TEL,
+						AD.MERC_ZIP, AD.MCC_NAME, TRIM(AD.MCC_CODE),
+						TRIM(AD.MCC_STAT), AD.VAT_STAT, AD.CAN_DATE,
+						AD.ASK_SITE, AD.SITE_DATE, AD.ASK_DATE,
+						AD.ASK_TIME, AD.GONGJE_NO_CHK, AD.AQUI_TIME,
+						AD.CONVERSION_FEE, AD.ORG_COLL, NULL,
+						AD.CARD_KIND, AD.SETT_DAY, AD.SETT_BANKCODE,
+						AD.SETT_ACCO, AD.JUMIN_NO, SYSDATE,
+						NULL, NULL, NULL,
+						NULL, NULL, NULL,
+						NULL, NULL, NULL, NULL
+							FROM
+								EAC_APPROVAL A,
+								EAC_APPROVAL_ITEM AD
+									WHERE 1 = 1
+										AND A.APPROVAL_ID = AD.APPROVAL_ID
+										AND A.COMPANY_CD = #{companyCd}
+										AND A.APPROVAL_ID = #{approvalId}
+										AND A.DEL_YN = 'N'
+										AND A.APPROVAL_STATUS_CD = 'NAPR'
+	</insert>
+
+	<update id="updateForSymposium" parameterType="approvalMgmtVo">
+		UPDATE
+			/** [ApprovalMapper.updateForSymposium] [최종 결재자 승인, 반려 후 심포지움 원본 품의서의 결재진행상태 SAPR or SREJ 업데이트] */
+				EAC_APPROVAL
+					SET
+						APPROVAL_STATUS_CD = #{approvalStatusCd},
+						APPROVAL_DATE = SYSDATE,
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID IN (
+														SELECT S_APPROVAL_ID
+															FROM EAC_APPROVAL_ITEM Q
+																WHERE 1 = 1
+																	AND Q.COMPANY_CD = #{companyCd}
+																	AND Q.APPROVAL_ID = #{approvalId}
+														)
+								AND DEL_YN = 'N'
+	</update>
+
+	<select id="validSymposiumApproval" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validSymposiumApproval] [정산서 - 품의서가 심포지움 건인지 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND ACCOUNT_CD = '2'
+	</select>
+
+	<select id="validFirstApUserId" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validFirstApUserId] [정산서 - 1차 결재자가 준법경영팀인지 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL_LINE
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ = 1
+								AND AP_USER_ID = 'V52140'
+	</select>
+
+	<select id="validAccountCd" parameterType="approvalMgmtVo" resultType="java.lang.Integer">
+		SELECT
+			/** [ApprovalMapper.validAccountCd] [정산서 - ACCOUNT_CD IN (3, 4) 인지 체크] */
+				COUNT(1)
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND ACCOUNT_CD IN (3, 4)
+	</select>
+
+	<select id="selectAccountCd" parameterType="approvalMgmtVo" resultType="java.lang.String">
+		SELECT
+			/** [ApprovalMapper.selectAccountCd] [정산서 - ACCOUNT_CD 조회] */
+				ACCOUNT_CD
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+	</select>
+
+	<update id="updateAccountSpCd" parameterType="approvalMgmtVo">
+		UPDATE
+			/** [ApprovalMapper.updateAccountSpCd] [결재내역 테이블 - ACCOUNT_SP_CD 업데이트] */
+				EAC_APPROVAL_ITEM
+					SET
+						ACCOUNT_SP_CD = #{accountSpCd},
+						ACCOUNT_SP_NM = (SELECT COM_CD_NM FROM SYS_COM_CD
+											WHERE 1 = 1
+												AND USE_YN = 'Y'
+												AND DEL_YN = 'N'
+												AND COMPANY_CD = #{companyCd}
+												AND COM_CD_GRP_ID IN ('ACCOUNT_SP1_CD', 'ACCOUNT_SP2_CD')
+												AND COM_CD = #{accountSpCd}),
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+	</update>
+
+	<update id="updateCancelApprovalCode" parameterType="approvalLineVo">
+		UPDATE
+			/** [ApprovalMapper.updateCancelApprovalCode] [결재라인 테이블 - 승인 취소 업데이트] */
+				EAC_APPROVAL_LINE
+					SET
+						APR_CD = NULL,
+						APR_COMMENT = NULL,
+						APR_DATE = NULL,
+						ACT_USER_ID = NULL,
+						ACT_USER_NM	= NULL,
+						ACT_DEPT_CD = NULL,
+						ACT_DEPT_NM	= NULL,
+						ACT_TITLE_CD = NULL,
+						ACT_TITLE_NM = NULL,
+						ACT_DUTY_CD = NULL,
+						ACT_DUTY_NM = NULL,
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ = (
+											SELECT MAX(SEQ) FROM EAC_APPROVAL_LINE
+												WHERE 1 = 1
+													AND COMPANY_CD = #{companyCd}
+													AND APPROVAL_ID = #{approvalId}
+											)
+	</update>
+
+	<update id="updateCancelApprovalStatusCode" parameterType="approvalMgmtVo">
+		UPDATE
+			/** [ApprovalMapper.updateCancelApprovalStatusCode] [품의서 테이블 - 승인 취소 업데이트] */
+				EAC_APPROVAL
+					SET
+						APPROVAL_DATE = NULL,
+						APPROVAL_STATUS_CD = 'NING',
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+	</update>
+
+	<delete id="deleteInterfaceData" parameterType="approvalMgmtVo">
+		DELETE
+			/** [ApprovalMapper.deleteInterfaceData] [승인 취소 - 인터페이스 삭제] */
+			FROM
+				A5992_IFI_AP
+					WHERE 1 = 1
+						AND COMPANY_CD = #{companyCd}
+						AND APPROVAL_ID = #{approvalId}
+	</delete>
+
+	<update id="updateCancelForSymposium" parameterType="approvalMgmtVo">
+		UPDATE
+			/** [ApprovalMapper.updateCancelForSymposium] [승인 취소 - 심포지움 원본 품의서의 결재진행상태 및 최종결재일 NULL 업데이트] */
+				EAC_APPROVAL
+					SET
+						APPROVAL_STATUS_CD = NULL,
+						APPROVAL_DATE = NULL,
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID IN (
+														SELECT S_APPROVAL_ID
+															FROM EAC_APPROVAL_ITEM Q
+																WHERE 1 = 1
+																	AND Q.COMPANY_CD = #{companyCd}
+																	AND Q.APPROVAL_ID = #{approvalId}
+														)
+								AND DEL_YN = 'N'
+	</update>
+
+	<select id="selectApproval" parameterType="approvalMgmtVo" resultType="approvalVo">
+		SELECT
+			/** [ApprovalMapper.selectApproval] [정산서 - 품의서 정보 조회] */
+				APPROVAL_ID			AS approvalId,
+				ACCOUNT_CD			AS accountCd,
+				ACCOUNT_NM			AS accountNm,
+				BUDGET_DEPT_NM		AS budgetDeptNm
+					FROM
+						EAC_APPROVAL
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+	</select>
+
+	<select id="selectUserListForSendMail" parameterType="approvalMgmtVo" resultType="java.util.HashMap">
+		SELECT
+			/** [ApprovalMapper.selectUserListForSendMail] [반려 시, 메일 보낼 대상 조회] */
+				USER_ID,
+				USER_NM,
+				DEPT_NM,
+				TITLE_NM,
+				EMAIL_ADDR
+					FROM
+						V_SYS_USER
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND USER_ID IN
+												(
+												SELECT USER_ID FROM
+													(
+													SELECT COMPANY_CD, APPROVAL_ID, RQ_USER_ID AS USER_ID FROM EAC_APPROVAL
+														WHERE COMPANY_CD = #{companyCd}
+														AND APPROVAL_ID = #{approvalId}
+													UNION ALL
+													SELECT COMPANY_CD, APPROVAL_ID, ACT_USER_ID AS USER_ID FROM EAC_APPROVAL_LINE
+														WHERE COMPANY_CD = #{companyCd}
+														AND APPROVAL_ID = #{approvalId}
+														AND SEQ <![CDATA[<]]> #{seq}
+													)
+														GROUP BY COMPANY_CD, APPROVAL_ID, USER_ID
+												)
+	</select>
+
+	<update id="updateAccount2Cd" parameterType="approvalMgmtVo">
+		UPDATE
+			/** [ApprovalMapper.updateAccount2Cd] [1차 결재자의 세부계정 업데이트] */
+				EAC_APPROVAL_ITEM
+					SET
+						ACCOUNT2_CD = #{account2Cd},
+						ACCOUNT2_NM = (SELECT COM_CD_NM FROM SYS_COM_CD
+											WHERE 1 = 1
+												AND USE_YN = 'Y'
+												AND DEL_YN = 'N'
+												AND COMPANY_CD = #{companyCd}
+												AND COM_CD_GRP_ID = 'ACCOUNT2_CD'
+												AND COM_CD = #{account2Cd}),
+						UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+						UPD_USER_ID = #{updUserId}
+							WHERE 1 = 1
+								AND COMPANY_CD = #{companyCd}
+								AND APPROVAL_ID = #{approvalId}
+								AND SEQ = #{seq}
+	</update>
+</mapper>

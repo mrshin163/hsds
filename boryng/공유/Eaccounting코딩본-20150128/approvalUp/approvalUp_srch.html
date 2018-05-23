@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../common/css/bizSP.css">
+<script src="../common/js/jquery-1.8.3.min.js"></script>
+<script src="../common/js/jquery.plugin.js"></script>
+<script src="../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body>
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../index.html"><i class="icon iconHome"></i> <span>Home</span></a>
+							</li>
+							<li class="">
+								<a href=""><i class="icon iconApprovalUp"></i> <span>결재 상신</span></a>
+								<ul class="depth02">
+									<li><a href="../approvalUp/approvalUp_srch.html" class="active">결재상신</a></li>
+									<li><a href="../approvalUp/symposium_srch.html">심포지움 결제상신</a></li>
+									<li><a href="../approvalUp/ingDoc.html">진행중 문서</a></li>
+									<li><a href="../approvalUp/returnDoc.html">반려문서</a></li>
+									<li><a href="../approvalUp/successDoc.html">완료문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconApproval"></i> <span>결재할 문서</span></a>
+								<ul class="depth02">
+									<li><a href="../doDoc/doDoc.html">결재할 문서</a></li>
+									<li><a href="../doDoc/successDoc.htm">완료 문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconReport"></i> <span>레포트</span></a>
+								<ul class="depth02">
+									<li><a href="../report/status.html">카드처리 현황</a></li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><i class="icon iconIngDoc"></i> <span>결재 상신</span></h2>
+						<p class="location">Home > 결재상신</p>
+					</div>
+
+					<!-- 검색조건 -->
+					<div class="srchCondition twoLine">
+						<strong class="tit">검색 조건</strong>
+						<div class="innerBox">
+							<div class="left">
+								<ul>
+									<li class="odd">
+										<span class="inputTit">사용년월</span>
+										<select name="" id="" class="customSelect">
+											<option value="2014">2014</option>
+										</select>
+
+										<select name="" id="" class="customSelect">
+											<option value="1월">1월</option>
+										</select>
+									</li>
+									<li class="even">
+										<span class="inputTit">카드사용자</span>
+										<select name="" id="" class="customSelect">
+											<option value="본인">본인</option>
+											<option value="대체자">대체자</option>
+										</select>
+									</li>
+									<li class="odd">
+										<span class="inputTit">사용용도</span>
+										<select name="" id="" class="customSelect">
+											<option value="법인">법인</option>
+											<option value="개인">개인</option>
+										</select>
+									</li>
+								</ul>
+							</div>
+							<div class="right">
+								<button type="button" class="btnSrch">검색</button>
+							</div>
+						</div>
+					</div>
+					<!-- //검색조건 -->
+					<!-- 검색내역 -->
+					<div class="srchList">
+						<strong class="tit">카드 미상신 내역<em>2건</em></strong>
+						<div class="innerBox">
+							<table class="defaultType">
+								<colgroup>
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+								</colgroup>
+								<thead>
+									<tr>
+										<th>사용일</th>
+										<th>상호</th>
+										<th>공급가액</th>
+										<th>부가세</th>
+										<th>합계금액</th>
+										<th>카드번호</th>
+										<th>승인번호</th>
+										<th>개인용도</th>
+										<th>품의서</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>2015-04-01</td>
+										<td>토속촌</td>
+										<td>63,636</td>
+										<td>6,364</td>
+										<td>70,000</td>
+										<td>1234567812345670</td>
+										<td>8523266</td>
+										<td><button type="button" class="customCheck">개인용도 <i class="iconCustomCheck"></i></span></td>
+										<td><a href="approvalUp_write.html" class="btnRoundRobin"><i class="icon iconRoundRobin"></i>품의서 작성</a></td>
+									</tr>
+									<tr>
+										<td>2015-04-01</td>
+										<td>토속촌</td>
+										<td>63,636</td>
+										<td>6,364</td>
+										<td>70,000</td>
+										<td>1234567812345670</td>
+										<td>8523266</td>
+										<td><button type="button" class="customCheck active">개인용도 <i class="iconCustomCheck"></i></span></td>
+										<td><a href="approvalUp_write.html" class="btnRoundRobin"><i class="icon iconRoundRobin"></i>품의서 작성</a></td>
+									</tr>
+								</tbody>
+								<tfoot>
+									<tr>
+										<td colspan="2" class="total">총계</td>
+										<td>97,000</td>
+										<td>97,000</td>
+										<td>97,000</td>
+										<td></td>
+										<td></td>
+										<td></td>
+										<td></td>
+									</tr>
+								</tfoot>
+							</table>
+						</div>
+					</div>
+					<!-- //검색내역 -->
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+</body>
+</html>

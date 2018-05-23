@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="LogMapper">
+
+	
+	<select id="selectLogList" parameterType="logVo" resultType="logVo" >
+		
+	</select>
+
+
+
+
+	<insert id="insertLog" parameterType="logVo">
+		INSERT 
+		  INTO BREAS_LOG 
+		     ( SEQ
+             , C_CD
+             , EMP_ID
+             , EMP_NM
+             , MENU_DEPTH1
+             , MENU_DEPTH2
+             , MENU_NAME
+             , LOG_URL
+             , LOG_IP
+             , LOG_REGDATE
+             , LOG_USERAGENT
+             , DIVISION_CODE
+             , DIVISION_NAME
+             , POSITION
+             , CALLNAME
+             , OFFICE
+             , HANDPHONE
+             )
+     VALUES  ( nvl((SELECT MAX(TO_NUMBER(SEQ))+1 FROM BREAS_LOG),1)
+             , #{C_CD, jdbcType=VARCHAR}
+             , #{EMP_ID, jdbcType=VARCHAR}
+             , #{EMP_NM, jdbcType=VARCHAR}
+             , #{MENU_DEPTH1, jdbcType=VARCHAR}
+             , #{MENU_DEPTH2, jdbcType=VARCHAR}
+             , #{MENU_NAME, jdbcType=VARCHAR}
+             , #{LOG_URL, jdbcType=VARCHAR}
+             , #{LOG_IP, jdbcType=VARCHAR}
+             , SYSDATE
+             , 'PC'
+             , #{DIVISION_CODE, jdbcType=VARCHAR}
+             , #{DIVISION_NAME, jdbcType=VARCHAR}
+             , #{POSITION, jdbcType=VARCHAR}
+             , #{CALLNAME, jdbcType=VARCHAR}
+             , #{OFFICE, jdbcType=VARCHAR}
+             , #{HANDPHONE, jdbcType=VARCHAR}
+             )
+	</insert>
+
+</mapper>

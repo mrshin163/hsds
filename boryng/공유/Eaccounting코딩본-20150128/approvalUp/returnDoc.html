@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../common/css/bizSP.css">
+<script src="../common/js/jquery-1.8.3.min.js"></script>
+<script src="../common/js/jquery.plugin.js"></script>
+<script src="../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body>
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../index.html"><i class="icon iconHome"></i> <span>Home</span></a>
+							</li>
+							<li class="">
+								<a href=""><i class="icon iconApprovalUp"></i> <span>결재 상신</span></a>
+								<ul class="depth02">
+									<li><a href="../approvalUp/approvalUp_srch.html">결재상신</a></li>
+									<li><a href="../approvalUp/symposium_srch.html">심포지움 결제상신</a></li>
+									<li><a href="../approvalUp/ingDoc.html">진행중 문서</a></li>
+									<li><a href="../approvalUp/returnDoc.html"  class="active">반려문서</a></li>
+									<li><a href="../approvalUp/successDoc.html">완료문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconApproval"></i> <span>결재할 문서</span></a>
+								<ul class="depth02">
+									<li><a href="../doDoc/doDoc.html">결재할 문서</a></li>
+									<li><a href="../doDoc/successDoc.htm">완료 문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconReport"></i> <span>레포트</span></a>
+								<ul class="depth02">
+									<li><a href="../report/status.html">카드처리 현황</a></li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><i class="icon iconIngDoc"></i> <span>반려 문서</span></h2>
+						<p class="location">Home > 결재상신 > 반려 문서</p>
+					</div>
+
+					<!-- 검색조건 -->
+					<div class="srchCondition">
+						<strong class="tit">검색 조건</strong>
+						<div class="innerBox">
+							<div class="left">
+								<ul>
+									<li class="odd">
+										<span class="inputTit">사용년월</span>
+										<select name="" id="" class="customSelect">
+											<option value="2014">2014</option>
+										</select>
+
+										<select name="" id="" class="customSelect">
+											<option value="1월">1월</option>
+										</select>
+									</li>
+								</ul>
+							</div>
+							<div class="right">
+								<button type="button" class="btnSrch">검색</button>
+							</div>
+						</div>
+					</div>
+					<!-- //검색조건 -->
+					<!-- 검색내역 -->
+					<div class="srchList">
+						<strong class="tit">반려 내역<em>2건</em></strong>
+						<div class="innerBox">
+							<table class="defaultType">
+								<colgroup>
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+								</colgroup>
+								<thead>
+									<tr>
+										<th>NO</th>
+										<th>반려 내역</th>
+										<th>사용년월</th>
+										<th>부서</th>
+										<th>결재문서번호</th>
+										<th>계정구분</th>
+										<th>건수</th>
+										<th>총사용액</th>
+										<th>반려일</th>
+										<th>상신일</th>
+										<th>반려 사유</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>1</td>
+										<td><a href="" onclick="showModal('calculateForm');return false;"class="btnCheck">조회</a></td>
+										<td>2015-04-01</td>
+										<td>그룹본부</td>
+										<td>201504XX</td>
+										<td></td>
+										<td>1</td>
+										<td>485,948</td>
+										<td>2015-04-27<br/>2015-04-27</td>
+										<td>2015-04-27<br/>2015-04-27</td>
+										<td></td>
+									</tr>
+									<tr>
+										<td>2</td>
+										<td><a href="" onclick="showModal('calculateForm');return false;"class="btnCheck">조회</a></td>
+										<td>2015-04-01</td>
+										<td>그룹본부</td>
+										<td>201504XX</td>
+										<td></td>
+										<td>1</td>
+										<td>485,948</td>
+										<td>2015-04-27<br/>2015-04-27</td>
+										<td>2015-04-27<br/>2015-04-27</td>
+										<td></td>
+									</tr>
+									<tr>
+										<td>3</td>
+										<td><a href="" onclick="showModal('calculateForm');return false;"class="btnCheck">조회</a></td>
+										<td>2015-04-01</td>
+										<td>그룹본부</td>
+										<td>201504XX</td>
+										<td></td>
+										<td>1</td>
+										<td>485,948</td>
+										<td>2015-04-27<br/>2015-04-27</td>
+										<td>2015-04-27<br/>2015-04-27</td>
+										<td></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<!-- //검색내역 -->
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+
+	<!-- 정산서 팝업 -->
+	<div class="layer" id="calculateForm">
+		<div class="layerInner">
+			<strong class="firstTit">정산서</strong>
+			<!-- 결재 -->
+			<div class="short">
+				<table class="defaultType shortTable">
+					<colgroup>
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+						<col width="" />
+					</colgroup>
+					<tbody>
+						<tr>
+							<th rowspan="3">결재</th>
+							<th>팀원</th>
+							<th>팀장</th>
+							<th>상무</th>
+							<th>대표</th>
+						</tr>
+						<tr>
+							<td>신윤경</td>
+							<td>홍상희</td>
+							<td>이동엽</td>
+							<td></td>
+						</tr>
+						<tr>
+							<td>2015.01.15</td>
+							<td>2015.01.15</td>
+							<td>2015.01.15</td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+			<!-- //결재 -->
+			<!-- 카드사용내역 -->
+			<div class="long">
+				<p class="secondTit">
+					카드사용내역
+					<span class="btns"><button type="button" class="btnProductional">재품의</button></span>
+				</p>
+				<div class="innerBox">
+					<div class="layerScroll">
+						<table class="defaultType defaultType02">
+							<colgroup>
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+							</colgroup>
+							<thead>
+								<tr>
+									<th>NO</th>
+									<th>사용일</th>
+									<th>상호</th>
+									<th>공급가액</th>
+									<th>부가세</th>
+									<th>합계금액</th>
+									<th>담당자</th>
+									<th>예산부서</th>
+									<th>계정구분</th>
+									<th>세부계정</th>
+									<th>제품군/명</th>
+									<th>거래처</th>
+									<th>공정거래규약</th>
+									<th>결과보고서</th>
+									<th>사용내역</th>
+									<th>첨부</th>
+									<th>상신의견</th>
+									<th>반려사유</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1</td>
+									<td>2015-04-01</td>
+									<td>토속촌</td>
+									<td>99,999</td>
+									<td>9,999</td>
+									<td>99,999</td>
+									<td>홍길동</td>
+									<td>홍보팀</td>
+									<td>세미나비</td>
+									<td>세미나비-일반</td>
+									<td>700-5101</td>
+									<td>2000120</td>
+									<td>9100050001</td>
+									<td><a href="" class="btnView"><i class="icon iconView">돋보기</i></a></td>
+									<td>세미나실 대여</td>
+									<td><a href="" class="btnView"><i class="icon iconView">돋보기</i></a></td>
+									<td>추천바랍니다.</td>
+									<td></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			<!-- //카드사용내역 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('calculateForm');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //정산서 팝업 -->
+</body>
+</html>

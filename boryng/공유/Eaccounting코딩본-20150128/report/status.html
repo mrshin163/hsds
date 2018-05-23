@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Biz.SP</title>
+<link rel="stylesheet" type="text/css" href="../common/css/common.css">
+<link rel="stylesheet" type="text/css" href="../common/css/bizSP.css">
+<script src="../common/js/jquery-1.8.3.min.js"></script>
+<script src="../common/js/jquery.plugin.js"></script>
+<script src="../common/js/bizSP.js"></script>
+<!--[if lt IE 9]>
+	<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+<![endif]-->
+</head>
+<body>
+	<div id="wrap" class="wrap">
+		<!-- 헤더 -->
+		<header class="header">
+			<div class="headerInner">
+				<div class="logo">
+					<h1><a href=""><img src="../images/logo_bizSP.png" alt="Biz.SP"/></a></h1>
+				</div>
+				<div class="headerTop">
+					<div class="left">
+						<span class="subLogo"><a href=""><img src="../images/logo_boryeong.png" alt="boryeong"/></a></span>
+						<span class="data">2015.01.16 금</span>
+					</div>
+					<div class="right">
+						<span class="user"><i class="icon iconUser"></i> <em>홍상희 부장</em></span>
+						<span class="util"><a href="">Log out</a></span>
+					</div>
+				</div>
+			</div>
+		</header>
+		<!-- //헤더 -->
+
+		<!-- 컨텐츠 -->
+		<section class="container">
+			<div class="containerInner">
+				<!-- lnb -->
+				<nav class="lnb">
+					<div class="lnbInner">
+						<ul class="leftMenu">
+							<li>
+								<a href="../index.html"><i class="icon iconHome"></i> <span>Home</span></a>
+							</li>
+							<li class="">
+								<a href=""><i class="icon iconApprovalUp"></i> <span>결재 상신</span></a>
+								<ul class="depth02">
+									<li><a href="../approvalUp/approvalUp_srch.html">결재상신</a></li>
+									<li><a href="../approvalUp/symposium_srch.html">심포지움 결제상신</a></li>
+									<li><a href="../approvalUp/ingDoc.html" >진행중 문서</a></li>
+									<li><a href="../approvalUp/returnDoc.html">반려문서</a></li>
+									<li><a href="../approvalUp/successDoc.html">완료문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconApproval"></i> <span>결재할 문서</span></a>
+								<ul class="depth02">
+									<li><a href="../doDoc/doDoc.html" >결재할 문서</a></li>
+									<li><a href="../doDoc/successDoc.html">완료 문서</a></li>
+								</ul>
+							</li>
+							<li>
+								<a href=""><i class="icon iconReport"></i> <span>레포트</span></a>
+								<ul class="depth02">
+									<li><a href="../report/status.html" class="active">카드처리 현황</a></li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</nav>
+				<!-- //lnb -->
+				<article class="content">
+					<!-- 타이틀 영역 -->
+					<div class="titArea subTitArea">
+						<h2><i class="icon iconStatus"></i> <span>카드 처리 현황</span></h2>
+						<p class="location">Home > 레포트 > 카드 처리 현황</p>
+					</div>
+
+					<!-- 검색조건 -->
+					<div class="srchCondition twoLine">
+						<strong class="tit">검색 조건</strong>
+						<div class="innerBox">
+							<div class="left">
+								<ul>
+									<li class="odd">
+										<span class="inputTit">사용 기간</span>
+										<input class="date-picker" id="firstCal" type="text" />
+										<label for="firstCal" class="btnCalSmall"><i class="icon iconCalSmall">달력</i></label>
+										~
+										<input class="date-picker" id="secondCal" type="text" />
+										<label for="secondCal" class="btnCalSmall"><i class="icon iconCalSmall">달력</i></label>
+									</li>
+									<li class="even">
+										<span class="inputTit">구분</span>
+										<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+									</li>
+									<li class="odd">
+										<span class="inputTit">조직</span>
+										<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+									</li>
+									<li class="even">
+										<span class="inputTit">회계전표번호</span>
+										<input type="text" /> <a href="" class="btnView"><i class="icon iconView">돋보기</i></a>
+									</li>
+								</ul>
+							</div>
+							<div class="right">
+								<button type="button" class="btnSrch">검색</button>
+							</div>
+						</div>
+					</div>
+					<!-- //검색조건 -->
+					<!-- 검색내역 -->
+					<div class="srchList">
+						<strong class="tit">검색 내역<em>2건</em></strong>
+						<div class="innerBox">
+							<div class="btns">
+								<a href="" onclick="showModal('cardDetailList');return false;"  class="btnCheckLong">조회</a>
+							</div>
+							<table class="defaultType">
+								<colgroup>
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+									<col width="" />
+								</colgroup>
+								<thead>
+									<tr>
+										<th><input type="checkbox" /></th>
+										<th>처리상태</th>
+										<th>건수</th>
+										<th>카드사용 공급가액 합</th>
+										<th>카드사용 부가세액 합</th>
+										<th>카드사용 총액 합</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td><span class="labelStatus type01">미상신</span></td>
+										<td>6</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td><span class="labelStatus type02">결재중</span></td>
+										<td>6</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td><span class="labelStatus type03">반려</span></td>
+										<td>6</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td><span class="labelStatus type04">결재완료</span></td>
+										<td>6</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+									</tr>
+									<tr>
+										<td><input type="checkbox" /></td>
+										<td><span class="labelStatus type05">상신제외</span></td>
+										<td>6</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+										<td>5,000,000</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+					<!-- //검색내역 -->
+				</article>
+			</div>
+		</section>
+		<!-- //컨텐츠 -->
+
+		<!-- 푸터 -->
+		<footer class="footer">
+			<div class="footerInner">
+				<p class="copyRight">2014 © Biz-Accounting by Biz.SP</p>
+			</div>
+		</footer>
+		<!-- //푸터 -->
+	</div>
+
+	<!-- 카드내역조회 팝업 -->
+	<div class="layer" id="cardDetailList">
+		<div class="layerInner">
+			<strong class="firstTit">카드내역 조회</strong>
+			<!-- 카드사용내역 -->
+			<div class="long">
+				<div class="innerBox02">
+					<div class="layerScroll">
+						<table class="defaultType">
+							<colgroup>
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+							</colgroup>
+							<thead>
+								<tr>
+									<th>NO</th>
+									<th>카드번호</th>
+									<th>소유주</th>
+									<th>사용일</th>
+									<th>공급가액</th>
+									<th>부가세액</th>
+									<th>계정구분</th>
+									<th>세부계정</th>
+									<th>합계금액</th>
+									<th>사용내역</th>
+									<th>결재문서번호</th>
+									<th>전표상태</th>
+									<th>회계전표번호</th>
+									<th>결재상태</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>4857125894566540 </td>
+									<td>오나비</td>
+									<td>2015-04-13</td>
+									<td>99,000</td>
+									<td>0</td>
+									<td></td>
+									<td></td>
+									<td>99,000</td>
+									<td>업무추친비</td>
+									<td></td>
+									<td></td>
+									<td></td>
+									<td><a href="" onclick="showModal('ingStatus');return false;"  class="btnView"><i class="icon iconView">돋보기</i></a></td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			<!-- //카드사용내역 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('cardDetailList');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //카드내역조회 팝업 -->
+
+	<!-- 결재상태 팝업 -->
+	<div class="layer" id="ingStatus">
+		<div class="layerInner">
+			<strong class="firstTit">결재상태</strong>
+			<!-- 결재상태리스트 -->
+			<div class="long">
+				<div class="innerBox03">
+					<div class="layerScroll">
+						<table class="defaultType">
+							<colgroup>
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+								<col width="" />
+							</colgroup>
+							<thead>
+								<tr>
+									<th>STEP</th>
+									<th>결재상태</th>
+									<th>성명</th>
+									<th>부서</th>
+									<th>직책</th>
+									<th>의견</th>
+									<th>상신/결재일자</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>1</td>
+									<td>상신</td>
+									<td>신윤경</td>
+									<td>박영구</td>
+									<td></td>
+									<td></td>
+									<td>2015-04-13</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>승인</td>
+									<td>신윤경</td>
+									<td>박영구</td>
+									<td></td>
+									<td></td>
+									<td>2015-04-13</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>승인</td>
+									<td>신윤경</td>
+									<td>박영구</td>
+									<td></td>
+									<td></td>
+									<td>2015-04-13</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>결재완료</td>
+									<td>신윤경</td>
+									<td>박영구</td>
+									<td></td>
+									<td></td>
+									<td>2015-04-13</td>
+								</tr>
+								<tr>
+									<td>1</td>
+									<td>전표발행</td>
+									<td>신윤경</td>
+									<td>박영구</td>
+									<td></td>
+									<td></td>
+									<td>2015-04-13</td>
+								</tr>								\
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+			<!-- //결재상태리스트 -->
+		</div>
+		<button type="button" class="btnLayerClose" onclick="hideModal('ingStatus');return false;"><img src="../images/btn_close.png"/></button>
+	</div>
+	<!-- //결재상태 팝업 -->
+</body>
+</html>

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CodeMapper">
+
+	<!-- 공통 그룹코드 조회 조건  -->
+	<sql id="commGrpCodeListCnd">
+		<where>
+			1=1
+			<if test='grpCodeId != null and grpCodeId != "all"'>
+				AND COM_CD_GRP_ID = #{grpCodeId}
+			</if>
+			<if test='grpCodeName != null and grpCodeName != "all"'>
+				AND	COM_CD_GRP_NM LIKE '%' || #{grpCodeName} || '%'
+			</if>
+			AND DEL_YN = 'N'
+		</where>	
+	</sql>
+	
+	
+	<!-- 공통코드 조회 조건  -->
+	<sql id="commCodeListCnd">
+		<where>
+			1=1
+			<if test='grpCodeId != null and grpCodeId != "all"'>
+				AND COM_CD_GRP_ID = #{grpCodeId}
+			</if>
+			<if test='code != null and code != "all"'>
+				AND COM_CD = #{code}
+			</if>
+			<if test='codeName != null'>
+				AND COM_CD_NM LIKE '%' || #{codeName} || '%'
+			</if>
+			AND DEL_YN = 'N'
+		</where>	
+	</sql>
+	
+
+	<!-- 공통 코드 목록 조회 -->
+	<select id="selectCommCodeList" parameterType="commCodeVo" resultType="commCodeVo" >
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+		SELECT COM_CD_GRP_ID 	AS grpCodeId
+			,COM_CD				AS code
+			,COMPANY_CD			AS companyCode
+			,COM_CD_NM			AS codeName
+			,DESCRIPTION		AS description
+			,USE_YN				AS useYn
+			,DEL_YN				AS delYn
+			,REG_DTTM			AS regDate
+			,REG_USER_ID		AS regUser
+			,UPD_DTTM			AS updtDate
+			,UPD_USER_ID		AS updtUser
+			FROM SYS_COM_CD
+			<include refid="commCodeListCnd"/>
+			ORDER BY COM_CD_NM
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>			
+	</select>
+	
+	<!-- 그룹 코드 리스트 -->
+	<select id="selectCommGrpCodeList" parameterType="commGrpCodeVo" resultType="commGrpCodeVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT COM_CD_GRP_ID	AS	grpCodeId  
+				,COMPANY_CD	        AS	companyCode
+				,COM_CD_GRP_NM      AS	grpCodeName
+				,CODE_TYPE_CD       AS	codeType   
+				,QUERY_ID           AS	queryId    
+				,DESCRIPTION        AS	description
+				,USE_YN             AS	useYn      
+				,DEL_YN             AS	delYn      
+				,REG_DTTM           AS	regDate    
+				,REG_USER_ID        AS	regUser    
+				,UPD_DTTM           AS	updtDate   
+				,UPD_USER_ID        AS	updtUser   
+				FROM SYS_COM_CD_GRP
+				<include refid="commGrpCodeListCnd"/>
+				ORDER BY COM_CD_GRP_NM
+			<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<!-- 코드리스트 COUNT -->
+	<select id="commGrpCodeCount" resultType="long" parameterType="commGrpCodeVo">
+		SELECT COUNT(*) FROM SYS_COM_CD_GRP
+		<include refid="commGrpCodeListCnd"/>
+	</select>
+	
+	<!-- 코드리스트 COUNT -->
+	<select id="commCodeCount" resultType="long" parameterType="commCodeVo">
+		SELECT COUNT(*) FROM SYS_COM_CD
+		<include refid="commCodeListCnd"/>
+	</select>
+	
+	<!-- 그룹 코드 등록 -->
+	<insert id="insertCommGrpCode" parameterType="commGrpCodeVo">
+		INSERT 
+		  INTO SYS_COM_CD_GRP 
+		     ( COM_CD_GRP_ID
+		     , COMPANY_CD
+		     , COM_CD_GRP_NM
+		     , CODE_TYPE_CD
+		     , DESCRIPTION
+		     , USE_YN
+		     , REG_USER_ID)
+		VALUES 
+			 ( #{grpCodeId}
+			 , #{companyCode}
+			 , #{grpCodeName}
+			 , #{codeType}
+			 , #{description, jdbcType=VARCHAR}
+			 , #{useYn}
+			 , #{regUser})						
+	</insert>
+	
+	<!-- 코드 등록 -->
+	<insert id="insertCommCode" parameterType="commCodeVo">
+		INSERT 
+		  INTO SYS_COM_CD 
+		     ( COM_CD_GRP_ID
+		     , COM_CD, COMPANY_CD
+		     , COM_CD_NM
+		     , DESCRIPTION
+		     , USE_YN
+		     , REG_USER_ID) 
+		VALUES 
+			 ( #{grpCodeId}		 /* COM_CD_GRP_ID */
+			 , #{code}		 	 /* COM_CD */
+			 , #{companyCode}	 /* COMPANY_CD */
+			 , #{codeName}		 /* COM_CD_NM */
+			 , #{description, jdbcType=VARCHAR}	 /* DESCRIPTION */
+			 , #{useYn}			 /* USE_YN */
+			 , #{regUser}		 /* REG_USER_ID */)
+ 	</insert>
+
+ 	<!-- 그룹 코드 수정 -->
+	<update id="updateCommGrpCode" parameterType="commGrpCodeVo">
+		UPDATE SYS_COM_CD_GRP
+		   SET COMPANY_CD    = #{companyCode}
+		     , COM_CD_GRP_NM = #{grpCodeName}
+		     , CODE_TYPE_CD  = #{codeType}
+		     , QUERY_ID      = #{queryId, jdbcType=VARCHAR}
+		     , DESCRIPTION   = #{description}
+		     , USE_YN        = #{useYn}
+		     , UPD_DTTM      = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID   = #{updtUser}
+		 WHERE COM_CD_GRP_ID = #{grpCodeId}
+	</update>
+	
+	<!-- 코드 수정 -->
+	<update id="updateCommCode" parameterType="commCodeVo">
+		UPDATE SYS_COM_CD
+		   SET COMPANY_CD    = #{companyCode}
+		     , COM_CD_NM     = #{codeName}
+		     , DESCRIPTION   = #{description, jdbcType=VARCHAR}
+		     , USE_YN        = #{useYn}
+		     , UPD_DTTM      = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID   = #{updtUser}
+		 WHERE COM_CD_GRP_ID = #{grpCodeId}
+		   AND COM_CD        = #{code}
+ 	</update>
+ 	
+ 	<!-- 그룹 코드 삭제 -->
+	<update id="deleteCommGrpCode" parameterType="commGrpCodeVo">
+		UPDATE SYS_COM_CD_GRP
+		   SET DEL_YN		 = 'Y'
+		 WHERE COM_CD_GRP_ID = #{grpCodeId}
+	</update>
+	
+	<!-- 코드 삭제 -->
+	<update id="deleteCommCode" parameterType="commCodeVo">
+		UPDATE SYS_COM_CD
+		   SET DEL_YN		 = 'Y'
+		 WHERE COM_CD_GRP_ID = #{grpCodeId}
+		   AND COM_CD        = #{code}
+ 	</update>
+
+	<select id="getAccountFavList" parameterType="commCodeVo" resultType="commCodeVo">
+		SELECT
+			/** [CodeMapper.getAccountFavList] [ACCOUNT2_CD, ACCOUNT2_NM 우선 노출 대상 조회] */
+				B.COM_CD				AS code,
+				B.COM_CD_NM				AS codeName
+					FROM
+						EAC_ACCOUNT_FAV A,
+						SYS_COM_CD B
+							WHERE 1 = 1
+								AND A.COMPANY_CD = B.COMPANY_CD
+								AND A.ACCOUNT2_CD = B.COM_CD
+								AND A.COMPANY_CD = #{companyCode}
+								AND A.ACCOUNT_CD = #{code}
+								AND B.COM_CD_GRP_ID = 'ACCOUNT2_CD'
+								AND B.USE_YN = 'Y'
+								AND B.DEL_YN = 'N'
+									ORDER BY A.ORD ASC
+	</select>
+
+</mapper>

@@ -1,0 +1,11 @@
+insert INTO sys_user_auth 
+select 'PHARM',EMP_ID, 'R04', TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), 'system'
+  from BORYUNGEHR.VW_EACCOUNTING_INSA@BORYUNGEHR U --v_sys_user u
+ where 1=1
+   and U.STAT_CD = '10'
+   and u.EMP_ID not in (select user_id from sys_user_auth ) ;
+   
+COMMIT;   
+   
+   
+SELECT * FROM sys_user_auth WHERE USER_ID IN ('13999','15077','15078','15079');

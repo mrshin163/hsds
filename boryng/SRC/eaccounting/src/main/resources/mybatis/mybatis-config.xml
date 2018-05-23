@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "HTTP://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+	<settings>
+        <setting name="cacheEnabled" value="true" />
+        <setting name="lazyLoadingEnabled" value="true" />
+        <setting name="multipleResultSetsEnabled" value="true" />
+        <setting name="useColumnLabel" value="true" />
+        <setting name="useGeneratedKeys" value="false" />
+        <setting name="autoMappingBehavior" value="PARTIAL" />
+        <setting name="defaultExecutorType" value="SIMPLE" />
+        <setting name="safeRowBoundsEnabled" value="false" />
+        <setting name="mapUnderscoreToCamelCase" value="false" />
+        <setting name="localCacheScope" value="SESSION" />
+        <setting name="jdbcTypeForNull" value="OTHER" />
+        <setting name="lazyLoadTriggerMethods" value="equals,clone,hashCode,toString" />
+    </settings>
+    <typeAliases>
+    	<typeAlias type="com.bizsp.eaccount.code.vo.CommCodeVo" alias="commCodeVo"/>
+    	<typeAlias type="com.bizsp.eaccount.code.vo.CommGrpCodeVo" alias="commGrpCodeVo"/>
+    	<typeAlias type="com.bizsp.eaccount.user.vo.UserVo" alias="userVo"/>
+    	<typeAlias type="com.bizsp.eaccount.menu.vo.MenuVo" alias="menuVo"/>
+    	<typeAlias type="com.bizsp.eaccount.auth.vo.AuthVo" alias="authVo"/>
+    	<typeAlias type="com.bizsp.eaccount.auth.vo.UserAuthVo" alias="userAuthVo"/>
+    	<typeAlias type="com.bizsp.eaccount.auth.vo.MenuAuthVo" alias="menuAuthVo"/>
+    	<typeAlias type="com.bizsp.eaccount.dept.vo.DeptVo" alias="deptVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.ApprovalRqInfoVo" alias="approvalRqInfoVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.ApprovalRqVo" alias="approvalRqVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.ApprovalRqItemVo" alias="approvalRqItemVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.ApprovalRqLineVo" alias="approvalRqLineVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.ApprovalRqCardMgmt" alias="approvalRqCardMgmt"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.ApprovalRqAttachVo" alias="approvalRqAttachVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.SymposiumMgmtVo" alias="symposiumMgmtVo"/>
+    	<typeAlias type="com.bizsp.eaccount.notice.vo.NoticeVo" alias="noticeVo"/>
+    	<typeAlias type="com.bizsp.eaccount.batch.vo.UnApprovedAQVo" alias="unApprovedAQVo"/>
+    	<typeAlias type="com.bizsp.eaccount.report.vo.CardProcessStatusVo" alias="cardProcessStatusVo"/>
+    	<typeAlias type="com.bizsp.eaccount.report.vo.DeptListVo" alias="deptListVo"/>
+    	<typeAlias type="com.bizsp.eaccount.report.vo.IndividualCardVo" alias="individualCardVo"/>
+    	<typeAlias type="com.bizsp.eaccount.report.vo.CardProcessVo" alias="cardProcessVo"/>
+    	<typeAlias type="com.bizsp.eaccount.comcard.vo.CommCardMgmtVo" alias="commCardMgmtVo"/>
+    	<typeAlias type="com.bizsp.eaccount.uploadFile.vo.AttachVo" alias="attachVo"/>
+    	<typeAlias type="com.bizsp.eaccount.uploadFile.vo.AttachFileVo" alias="attachFileVo"/>
+    	<typeAlias type="com.bizsp.eaccount.card.vo.CardVo" alias="cardVo"/>
+    	<typeAlias type="com.bizsp.eaccount.card.vo.CardMgmtVo" alias="cardMgmtVo"/>
+    	<typeAlias type="com.bizsp.eaccount.card.vo.CardScheduleVo" alias="cardScheduleVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approval.vo.ApprovalMgmtVo" alias="approvalMgmtVo"/>
+    	<typeAlias type="com.bizsp.eaccount.admin.vo.LogVo" alias="logVo"/>
+    	
+
+    	<typeAlias type="com.bizsp.eaccount.approvalSupport.customer.vo.CustomerVo" alias="customerVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalSupport.ruleDocument.vo.RuleDocumentVo" alias="ruleDocumentVo"/>
+
+    	<typeAlias type="com.bizsp.eaccount.approval.vo.ApprovalVo" alias="approvalVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approval.vo.ApprovalItemVo" alias="approvalItemVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approval.vo.ApprovalLineVo" alias="approvalLineVo"/>
+
+    	<typeAlias type="com.bizsp.eaccount.approvalRq.vo.SymposiumRqVo" alias="symposiumRqVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalLine.vo.ApprovalPolicyVo" alias="approvalPolicyVo"/>
+    	<typeAlias type="com.bizsp.eaccount.approvalLine.vo.ApprovalPolicyDtlVo" alias="approvalPolicyDtlVo"/>
+
+		<typeAlias type="com.bizsp.eaccount.downloadFile.vo.AttachVo" alias="downloadAttachVo" />
+		<typeAlias type="com.bizsp.eaccount.downloadFile.vo.AttachFileVo" alias="downloadAttachFileVo" />
+    </typeAliases>
+    
+    
+    <mappers>
+    	<mapper resource="./mybatis/common-query.query"/>
+    </mappers>
+    
+    
+</configuration>

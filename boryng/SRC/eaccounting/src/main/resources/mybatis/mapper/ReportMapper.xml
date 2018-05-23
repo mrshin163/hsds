@@ -1,0 +1,1890 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ReportMapper">
+	
+	<select id="getLowDeptList" parameterType="deptVo" resultType="deptVo">
+		SELECT DEPT_CD AS deptCode
+		/** 현재 부서의 모든 하위부서 */
+		  FROM SYS_DEPT
+		 WHERE 1=1
+		   AND COMPANY_CD = #{copanyCode}
+			   START WITH DEPT_CD = #{deptCode}
+			   CONNECT BY PRIOR DEPT_CD = UP_DEPT_CD
+	</select>
+	
+	<select id="getLowUserList" parameterType="deptListVo" resultType="userVo">
+		SELECT USER_ID	AS userId
+			 , DEPT_CD  AS deptCode
+		/** 현재 부서의 모든 하위부서 */
+		  FROM V_SYS_USER
+		 WHERE 1=1
+		   AND COMPANY_CD = #{companyCd}
+		   AND DEPT_CD IN 
+		   <foreach item="item" index="index" collection="deptList" open="(" separator="," close=")">
+		   		#{item.deptCode}
+		   </foreach>
+		   
+	</select>
+
+	<!-- 영업일+2일 까지는 전월1일부터 오늘까지, 영업일+3일부터는 당월1일부터 오늘까지 -->
+	<select id="getDefaultWorkduration" resultType="java.util.HashMap">
+		SELECT CASE FN_GET_WORKDAYS(TO_DATE(TO_CHAR(SYSDATE,'YYYYMM')||'01'), SYSDATE) 
+		       WHEN 1 THEN TO_CHAR(ADD_MONTHS(SYSDATE,-1),'YYYYMM')||'01' 
+		       WHEN 2 THEN TO_CHAR(ADD_MONTHS(SYSDATE,-1),'YYYYMM')||'01'
+		       ELSE        TO_CHAR(SYSDATE, 'YYYYMM')||'01'
+		       END  AS default_start_date
+		     , TO_CHAR(SYSDATE, 'YYYYMMDD') default_end_date       
+		  FROM DUAL
+	</select>
+
+	<!-- 카드처리현황 개인별  조회 -->
+	<select id="getCardProcessStatusList" parameterType="java.util.Map" resultType="cardProcessStatusVo">
+		SELECT DD1.APPROVAL_STATUS_CD AS approvalStatusCd
+		     , MAX(DD1.APPROVAL_STATUS_NM) as approvalStatusNm
+		     , COUNT(DD2.APPROVAL_STATUS_CD) as cnt
+		     , NVL(SUM(DD2.REQUEST_AMOUNT),0) as requestAmount
+		  FROM (
+		            SELECT 'AAAA' APPROVAL_STATUS_CD, '미상신' APPROVAL_STATUS_NM, 1 ord FROM DUAL 
+		            UNION  
+		            SELECT 'ZZZZ' APPROVAL_STATUS_CD, '상신제외' approvalStatusNm, 1 ord  FROM DUAL                
+		            UNION  
+		            SELECT 'NREJ' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NREJ') APPROVAL_STATUS_NM, 2 ord  FROM DUAL
+		            UNION  
+		            SELECT 'NREQ' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NREQ') APPROVAL_STATUS_NM, 3 ord  FROM DUAL
+		            UNION  
+		            SELECT 'NING' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NING') APPROVAL_STATUS_NM, 4 ord  FROM DUAL
+		            UNION  
+		            SELECT 'NAPR' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NAPR') APPROVAL_STATUS_NM, 5 ord  FROM DUAL
+		            UNION  
+		            SELECT 'EAPR' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','EAPR') APPROVAL_STATUS_NM, 6 ord  FROM DUAL
+		            UNION  
+		            SELECT 'SR' APPROVAL_STATUS_CD, '심포지움 결재요청' APPROVAL_STATUS_NM, 7 ord  FROM DUAL
+		            UNION  
+		            SELECT 'SING' APPROVAL_STATUS_CD, '심포지움 결재진행중' APPROVAL_STATUS_NM, 8 ord  FROM DUAL
+		            UNION  
+		            SELECT 'SAPR' APPROVAL_STATUS_CD, '심포지움 결재완료' APPROVAL_STATUS_NM, 9 ord  FROM DUAL
+		       ) DD1, 
+		       (   
+					SELECT *
+					  FROM (
+							<if test='cardUserCode == "1"'>     	
+						       <include refid="UnApproved_Self"/>
+						       union      
+							</if>						       
+							<if test='cardUserCode == "2"'>     	
+						       <include refid="UnApproved_Rep"/>
+						       union      
+							</if>						       
+						       <include refid="Approved_ApprovalStatus"/>
+						       union      
+						       <include refid="UnApproved_Except"/>
+				           ) Q
+					 WHERE 1=1
+					 ORDER BY APPROVAL_STATUS_CD ASC, AUTH_DATE DESC
+               ) DD2               
+ 	     WHERE 1=1        
+		   AND DD1.APPROVAL_STATUS_CD = DD2.APPROVAL_STATUS_CD (+)
+		 GROUP BY DD1.APPROVAL_STATUS_CD, ORD
+		 ORDER BY ORD
+ 	</select>
+
+	<select id="getUnapprovedList" parameterType="java.util.Map" resultType="java.util.Map">
+		<if test='cardUserCode == "1"'>     	
+			<include refid="UnApproved_Self"/>
+		</if>						       
+		<if test='cardUserCode == "2"'>     	
+			<include refid="UnApproved_Rep"/>
+		</if>						       
+	</select>
+	
+	<select id="getApprovedList" parameterType="java.util.Map" resultType="java.util.Map">
+		<include refid="Approved_ApprovalStatus"/>
+	</select>
+	
+	<select id="getExceptList" parameterType="java.util.Map" resultType="java.util.Map">
+		<include refid="UnApproved_Except"/>
+	</select>
+	
+	
+ 	<sql id="UnApproved_Self">
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		           FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G
+		        WHERE 1=1
+		          AND C.CARD_NUM        = D.CARD_NO
+		          AND D.COMPANY_CD      = #{companyCd}
+		          AND D.USE_YN          = 'Y'
+		          AND D.DEL_YN          = 'N'
+		          AND D.USER_ID         = #{userId}
+		          AND C.CARD_NUM        = G.CARD_NUM
+		          AND C.AUTH_DATE       = G.AUTH_DATE
+		          AND C.AUTH_NUM        = G.AUTH_NUM
+		          AND C.GEORAE_STAT     = G.GEORAE_STAT
+		          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		          AND C.GEORAE_COLL     = G.GEORAE_COLL
+		          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		          AND C.CARD_NUM NOT IN (
+		                                    SELECT A.CARD_NUM                    
+		                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                     WHERE 1=1
+		                                          AND A.CARD_NUM = E.CARD_NO
+		                                          AND E.COMPANY_CD = #{companyCd}
+		                                          AND E.COMPANY_CD=S.COMPANY_CD
+		                                          AND E.CARD_NO=S.CARD_NO                  
+		                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		                                 )      
+		          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정 : 재품의 한것도 빠지게 됨
+		                          AND A.DEL_YN = 'N' --고정
+		                     )     
+		          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		    UNION ALL                                        
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		           FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_SCHEDULE S, EAC_CARD_AQ_MGMT G
+		         WHERE 1=1
+		              AND C.CARD_NUM        = E.CARD_NO
+		              AND E.COMPANY_CD      = #{companyCd}                                                      
+		              AND E.COMPANY_CD      = S.COMPANY_CD
+		              AND E.CARD_NO         = S.CARD_NO   
+		              AND E.USE_YN          = 'Y'
+		              AND E.DEL_YN          = 'N'
+		              AND S.USER_ID         = #{userId}
+		              AND C.CARD_NUM        = G.CARD_NUM
+		              AND C.AUTH_DATE       = G.AUTH_DATE
+		              AND C.AUTH_NUM        = G.AUTH_NUM
+		              AND C.GEORAE_STAT     = G.GEORAE_STAT
+		              AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		              AND C.GEORAE_COLL     = G.GEORAE_COLL
+		              AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		              AND C.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		              AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		                     NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                                FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                               WHERE 1=1
+				                         AND A.COMPANY_CD = #{companyCd}
+		                                 AND A.COMPANY_CD = I.COMPANY_CD
+		                                 AND A.APPROVAL_ID = I.APPROVAL_ID
+		                                 AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                                 AND A.DEL_YN = 'N' --고정
+		                                )                                        
+			          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		    UNION  ALL                          
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		         FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_MGMT M, EAC_CARD_AQ_MGMT G 
+		        WHERE 1=1
+		          AND C.CARD_NUM        = E.CARD_NO
+		          AND E.COMPANY_CD      = #{companyCd}                                                      
+		          AND E.COMPANY_CD      = M.COMPANY_CD
+		          AND E.CARD_NO         = M.CARD_NO   
+		          AND E.USE_YN          = 'Y'
+		          AND E.DEL_YN          = 'N'
+		          AND (M.SEC1_USER_ID   = #{userId} OR M.SEC2_USER_ID = #{userId})
+		          AND C.CARD_NUM        = G.CARD_NUM
+		          AND C.AUTH_DATE       = G.AUTH_DATE
+		          AND C.AUTH_NUM        = G.AUTH_NUM
+		          AND C.GEORAE_STAT     = G.GEORAE_STAT
+		          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		          AND C.GEORAE_COLL     = G.GEORAE_COLL
+		          AND M.SEC_CARD_YN     = 'Y'
+		          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		          AND C.CARD_NUM NOT IN (
+		                                    SELECT A.CARD_NUM                    
+		                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                     WHERE 1=1
+		                                          AND A.CARD_NUM = E.CARD_NO
+		                                          AND E.COMPANY_CD = #{companyCd}
+		                                          AND E.COMPANY_CD=S.COMPANY_CD
+		                                          AND E.CARD_NO=S.CARD_NO                  
+		                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		                                 )      
+		          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                          AND A.DEL_YN = 'N' --고정
+		                     )                            
+		          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		    UNION  ALL                          
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		         FROM CARD_AQ_TMP C, EAC_CARD_AQ_MGMT G 
+		        WHERE 1=1
+		          AND C.CARD_NUM        = G.CARD_NUM
+		          AND C.AUTH_DATE       = G.AUTH_DATE
+		          AND C.AUTH_NUM        = G.AUTH_NUM
+		          AND C.GEORAE_STAT     = G.GEORAE_STAT
+		          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		          AND C.GEORAE_COLL     = G.GEORAE_COLL
+		          AND G.ACT_USER_ID IS NOT NULL
+		          AND G.ACT_USER_ID     = #{userId}
+		          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		          AND C.CARD_NUM NOT IN (
+		                                    SELECT A.CARD_NUM                    
+		                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                     WHERE 1=1
+		                                          AND A.CARD_NUM = E.CARD_NO
+		                                          AND E.COMPANY_CD = #{companyCd}
+		                                          AND E.COMPANY_CD=S.COMPANY_CD
+		                                          AND E.CARD_NO=S.CARD_NO                  
+		                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		                                 )      
+		          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                          AND A.DEL_YN = 'N' --고정
+		                     )
+		          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일
+ 	</sql>
+ 	
+ 	<sql id="UnApproved_Rep">
+	        SELECT C.CARD_NUM
+	             , C.AUTH_DATE
+	             , C.CARD_NAME
+	             , C.MERC_NAME
+	             , C.REQUEST_AMOUNT
+	             , C.GEORAE_COLL
+	             , '' AS RQ_USER_NM             
+	             , '' AS RQ_DEPT_NM              
+	             , '' AS APPROVAL_ID
+	             , '' AS ACCOUNT_NM
+	             , '' AS ACCOUNT2_NM
+	             , '' AS DETAILS
+	             , '' AS FINANCE_NO
+	             , '' AS JUNPYO_ST_CD
+	             , '' AS JUNPYO_ST_NM
+	             , 'AAAA' AS APPROVAL_STATUS_CD
+	           FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G, EAC_CARD_MGMT M
+	        WHERE 1=1
+	          AND C.CARD_NUM        = D.CARD_NO
+	          AND D.COMPANY_CD      = #{companyCd}
+	          AND D.USE_YN          = 'Y'
+	          AND D.DEL_YN          = 'N'
+	          AND C.CARD_NUM        = G.CARD_NUM
+	          AND C.AUTH_DATE       = G.AUTH_DATE
+	          AND C.AUTH_NUM        = G.AUTH_NUM
+	          AND C.GEORAE_STAT     = G.GEORAE_STAT
+	          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+	          AND C.GEORAE_COLL     = G.GEORAE_COLL
+	          AND D.COMPANY_CD      = M.COMPANY_CD
+	          AND D.CARD_NO         = M.CARD_NO   
+	          AND (M.REP_CARD_YN='Y' AND M.REP_USER_ID = #{userId} )   -- 검색조건 : 로그인한 사용자ID (대체자)
+	          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+	          AND C.CARD_NUM NOT IN (
+	                                    SELECT A.CARD_NUM                    
+	                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+	                                     WHERE 1=1
+	                                          AND A.CARD_NUM = E.CARD_NO
+	                                          AND E.COMPANY_CD = #{companyCd}
+	                                          AND E.COMPANY_CD=S.COMPANY_CD
+	                                          AND E.CARD_NO=S.CARD_NO                  
+	                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+	                                 )      
+	          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+	              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+	                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+	                        WHERE 1=1
+	                          AND A.COMPANY_CD = #{companyCd}
+	                          AND A.COMPANY_CD = I.COMPANY_CD
+	                          AND A.APPROVAL_ID = I.APPROVAL_ID
+	                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정 : 재품의 한것도 빠지게 됨
+	                          AND A.DEL_YN = 'N' --고정
+	                     )                           
+	          AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}           -- 검색조건 : 카드승인일 
+ 	</sql>
+ 	
+ 	<sql id="Approved_ApprovalStatus">
+		        SELECT AI.CARD_NUM
+		             , AI.AUTH_DATE
+		             , AI.CARD_NAME
+		             , AI.MERC_NAME
+		             , AI.REQUEST_AMOUNT
+		             , AI.GEORAE_COLL
+		             , A.RQ_USER_NM             
+		             , A.RQ_DEPT_NM              
+		             , A.APPROVAL_ID
+		             , A.ACCOUNT_NM
+		             , AI.ACCOUNT2_NM
+		             , AI.DETAILS
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN MA.FINANCE_NO
+		               WHEN 'SING' THEN MA.FINANCE_NO
+		               WHEN 'SAPR' THEN MA.FINANCE_NO
+		               ELSE             AI.FINANCE_NO
+		               END AS FINANCE_NO 
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN MA.JUNPYO_ST_CD
+		               WHEN 'SING' THEN MA.JUNPYO_ST_CD
+		               WHEN 'SAPR' THEN MA.JUNPYO_ST_CD
+		               ELSE             AI.JUNPYO_ST_CD
+		               END AS JUNPYO_ST_CD 
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD)  
+		               WHEN 'SING' THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD) 
+		               WHEN 'SAPR' THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD) 
+		               ELSE             FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',AI.JUNPYO_ST_CD) 
+		               END AS JUNPYO_ST_NM
+		             , A.APPROVAL_STATUS_CD
+		          FROM EAC_CARD_AQ_MGMT G
+		             , EAC_APPROVAL A
+		             , EAC_APPROVAL_ITEM AI
+		             , (SELECT ASS.COMPANY_CD, ASS.S_APPROVAL_ID, ASS.S_APPROVAL_SEQ, ASS.FINANCE_NO, ASS.JUNPYO_ST_CD
+		                  FROM EAC_APPROVAL AAS
+				             , EAC_APPROVAL_ITEM ASS 
+				         WHERE 1=1
+				           AND ASS.COMPANY_CD	  = AAS.COMPANY_CD
+				           AND ASS.APPROVAL_ID    = AAS.APPROVAL_ID
+				           AND AAS.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR')
+				           AND AAS.DEL_YN        = 'N'
+				       ) MA
+		         WHERE 1=1
+		           AND A.COMPANY_CD       = #{companyCd}
+		           AND A.COMPANY_CD       = AI.COMPANY_CD
+		           AND A.APPROVAL_ID      = AI.APPROVAL_ID
+		           AND A.DEL_YN           = 'N'
+		           AND AI.CARD_NUM        = G.CARD_NUM
+		           AND AI.AUTH_DATE       = G.AUTH_DATE
+		           AND AI.AUTH_NUM        = G.AUTH_NUM
+		           AND AI.GEORAE_STAT     = G.GEORAE_STAT
+		           AND AI.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		           AND AI.GEORAE_COLL     = G.GEORAE_COLL
+		           AND AI.COMPANY_CD	  = MA.COMPANY_CD (+)
+		           AND AI.APPROVAL_ID     = MA.S_APPROVAL_ID (+)
+		           AND AI.SEQ			  = MA.S_APPROVAL_SEQ(+)
+		           AND (A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                OR (A.APPROVAL_STATUS_CD = 'NREJ' 
+								AND (AI.CARD_NUM, AI.AUTH_DATE, AI.AUTH_NUM, AI.GEORAE_STAT, AI.REQUEST_AMOUNT, AI.GEORAE_COLL) 
+						              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+						                         FROM EAC_APPROVAL A1, EAC_APPROVAL_ITEM I
+						                        WHERE 1=1
+						                          AND A1.COMPANY_CD = #{companyCd}
+						                          AND A1.COMPANY_CD = I.COMPANY_CD
+						                          AND A1.APPROVAL_ID = I.APPROVAL_ID
+						                          AND A1.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR') -- 고정 : 재품의 한것도 빠지게 됨
+						                          AND A1.DEL_YN = 'N' --고정
+						                     )  		                    
+		                   )
+		               ) 
+		           AND (G.CARD_USING_TP_CD = '1' OR G.CARD_USING_TP_CD IS NULL) -- 고정 : 법인용  또는 지정 안된 것
+		           AND AI.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}            -- 검색조건 : 카드승인일
+				<if test='cardUserCode == "1"'>     
+		           AND A.RQ_USER_ID       = #{userId} -- 검색조건 : 사용자ID (본인)      
+				</if>
+				<if test='cardUserCode == "2"'>     
+		           AND (A.RQ_USER_ID <![CDATA[<>]]> A.RRQ_USER_ID AND A.RRQ_USER_ID = #{userId}) -- 검색조건 : 사용자ID (대체자)      
+				</if>
+				<if test='financeNo != null and financeNo != "all"'>
+				   AND AI.FINANCE_NO     LIKE '%'||#{financeNo}||'%'               
+				</if>
+				 <if test='approvalStatusCd !=null and approvalStatusCd != "all"'>
+				   AND A.APPROVAL_STATUS_CD = #{approvalStatusCd}                              
+				 </if>
+ 	</sql>
+ 	
+ 	<sql id="UnApproved_Except">
+	        SELECT C.CARD_NUM
+	             , C.AUTH_DATE
+	             , C.CARD_NAME
+	             , C.MERC_NAME
+	             , C.REQUEST_AMOUNT
+	             , C.GEORAE_COLL
+	             , '' AS RQ_USER_NM
+	             , '' AS RQ_DEPT_NM           
+	             , '' AS APPROVAL_ID
+	             , '' AS ACCOUNT_NM
+	             , '' AS ACCOUNT2_NM
+	             , '' AS DETAILS
+	             , '' AS FINANCE_NO
+	             , '' AS JUNPYO_ST_CD
+	             , '' AS JUNPYO_ST_NM
+	             , 'ZZZZ' AS APPROVAL_STATUS_CD
+	          FROM CARD_AQ_TMP C
+	             , EAC_CARD_AQ_MGMT G
+	             , EAC_CARD D 
+	         WHERE 1=1
+	              AND C.CARD_NUM        = D.CARD_NO
+	              AND D.COMPANY_CD      = #{companyCd}
+	              AND D.USE_YN          = 'Y'
+	              AND D.DEL_YN          = 'N'
+	              AND D.USER_ID         = #{userId}                              -- 검색조건 : 사용자ID (본인)
+	              AND C.CARD_NUM        = G.CARD_NUM
+	              AND C.AUTH_DATE       = G.AUTH_DATE
+	              AND C.AUTH_NUM        = G.AUTH_NUM
+	              AND C.GEORAE_STAT     = G.GEORAE_STAT
+	              AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+	              AND C.GEORAE_COLL     = G.GEORAE_COLL
+	              AND G.CARD_USING_TP_CD = '2' -- 고정 : 개인용      
+	              AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}            -- 검색조건 : 카드승인일    
+ 	</sql>
+ 	
+ 	
+ 	<!-- 카드처리현황 부서별  조회 -->
+	<select id="getCardProcessStatusListDept" parameterType="java.util.Map" resultType="cardProcessStatusVo">
+		SELECT DD1.APPROVAL_STATUS_CD AS approvalStatusCd
+		     , MAX(DD1.APPROVAL_STATUS_NM) as approvalStatusNm
+		     , COUNT(DD2.APPROVAL_STATUS_CD) as cnt
+		     , NVL(SUM(DD2.REQUEST_AMOUNT),0) as requestAmount
+		  FROM (
+		            SELECT 'AAAA' APPROVAL_STATUS_CD, '미상신' APPROVAL_STATUS_NM, 1 ord FROM DUAL 
+		            UNION  
+		            SELECT 'ZZZZ' APPROVAL_STATUS_CD, '상신제외' approvalStatusNm, 1 ord  FROM DUAL                
+		            UNION  
+		            SELECT 'NREJ' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NREJ') APPROVAL_STATUS_NM, 2 ord  FROM DUAL
+		            UNION  
+		            SELECT 'NREQ' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NREQ') APPROVAL_STATUS_NM, 3 ord  FROM DUAL
+		            UNION  
+		            SELECT 'NING' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NING') APPROVAL_STATUS_NM, 4 ord  FROM DUAL
+		            UNION  
+		            SELECT 'NAPR' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','NAPR') APPROVAL_STATUS_NM, 5 ord  FROM DUAL
+		            UNION  
+		            SELECT 'EAPR' APPROVAL_STATUS_CD, FN_GET_COM_CD(#{companyCd},'APPROVAL_STATUS_CD','EAPR') APPROVAL_STATUS_NM, 6 ord  FROM DUAL
+		            UNION  
+		            SELECT 'SR' APPROVAL_STATUS_CD, '심포지움 결재요청' APPROVAL_STATUS_NM, 7 ord  FROM DUAL
+		            UNION  
+		            SELECT 'SING' APPROVAL_STATUS_CD, '심포지움 결재진행중' APPROVAL_STATUS_NM, 8 ord  FROM DUAL
+		            UNION  
+		            SELECT 'SAPR' APPROVAL_STATUS_CD, '심포지움 결재완료' APPROVAL_STATUS_NM, 9 ord  FROM DUAL
+		       ) DD1, 
+		       (   
+					SELECT *
+					  FROM (
+							<if test='cardUserCode == "1"'>     	
+						       <include refid="UnApproved_SelfDept"/>
+						       union      
+							</if>						       
+							<if test='cardUserCode == "2"'>     	
+						       <include refid="UnApproved_RepDept"/>
+						       union      
+							</if>						       
+						       <include refid="Approved_ApprovalStatusDept"/>
+						       union      
+						       <include refid="UnApproved_ExceptDept"/>
+				           ) Q
+					 WHERE 1=1
+					 ORDER BY APPROVAL_STATUS_CD ASC, AUTH_DATE DESC
+               ) DD2               
+ 	     WHERE 1=1        
+		   AND DD1.APPROVAL_STATUS_CD = DD2.APPROVAL_STATUS_CD (+)
+		 GROUP BY DD1.APPROVAL_STATUS_CD, ORD
+		 ORDER BY ORD
+ 	</select>
+
+	<select id="getUnapprovedListDept" parameterType="java.util.Map" resultType="java.util.Map">
+		<if test='cardUserCode == "1"'>     	
+			<include refid="UnApproved_SelfDept"/>
+		</if>						       
+		<if test='cardUserCode == "2"'>     	
+			<include refid="UnApproved_RepDept"/>
+		</if>						       
+	</select>
+	
+	<select id="getApprovedListDept" parameterType="java.util.Map" resultType="java.util.Map">
+		<include refid="Approved_ApprovalStatusDept"/>
+	</select>
+	
+	<select id="getExceptListDept" parameterType="java.util.Map" resultType="java.util.Map">
+		<include refid="UnApproved_ExceptDept"/>
+	</select>
+	
+	
+ 	<sql id="UnApproved_SelfDept">
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		           FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G
+		        WHERE 1=1
+		          AND C.CARD_NUM        = D.CARD_NO
+		          AND D.COMPANY_CD      = #{companyCd}
+		          AND D.USE_YN          = 'Y'
+		          AND D.DEL_YN          = 'N'
+		          AND D.USER_ID         IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach>		          
+		          AND C.CARD_NUM        = G.CARD_NUM
+		          AND C.AUTH_DATE       = G.AUTH_DATE
+		          AND C.AUTH_NUM        = G.AUTH_NUM
+		          AND C.GEORAE_STAT     = G.GEORAE_STAT
+		          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		          AND C.GEORAE_COLL     = G.GEORAE_COLL
+		          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		          AND C.CARD_NUM NOT IN (
+		                                    SELECT A.CARD_NUM                    
+		                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                     WHERE 1=1
+		                                          AND A.CARD_NUM = E.CARD_NO
+		                                          AND E.COMPANY_CD = #{companyCd}
+		                                          AND E.COMPANY_CD=S.COMPANY_CD
+		                                          AND E.CARD_NO=S.CARD_NO                  
+		                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		                                 )      
+		          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정 : 재품의 한것도 빠지게 됨
+		                          AND A.DEL_YN = 'N' --고정
+		                     )     
+		          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		    UNION ALL                                        
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		           FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_SCHEDULE S, EAC_CARD_AQ_MGMT G
+		         WHERE 1=1
+		              AND C.CARD_NUM        = E.CARD_NO
+		              AND E.COMPANY_CD      = #{companyCd}                                                      
+		              AND E.COMPANY_CD      = S.COMPANY_CD
+		              AND E.CARD_NO         = S.CARD_NO   
+		              AND E.USE_YN          = 'Y'
+		              AND E.DEL_YN          = 'N'
+		              AND S.USER_ID         IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach>
+		              AND C.CARD_NUM        = G.CARD_NUM
+		              AND C.AUTH_DATE       = G.AUTH_DATE
+		              AND C.AUTH_NUM        = G.AUTH_NUM
+		              AND C.GEORAE_STAT     = G.GEORAE_STAT
+		              AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		              AND C.GEORAE_COLL     = G.GEORAE_COLL
+		              AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		              AND C.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		              AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		                     NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                                FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                               WHERE 1=1
+				                         AND A.COMPANY_CD = #{companyCd}
+		                                 AND A.COMPANY_CD = I.COMPANY_CD
+		                                 AND A.APPROVAL_ID = I.APPROVAL_ID
+		                                 AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                                 AND A.DEL_YN = 'N' --고정
+		                                )                                        
+			          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		    UNION  ALL                          
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		         FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_MGMT M, EAC_CARD_AQ_MGMT G 
+		        WHERE 1=1
+		          AND C.CARD_NUM        = E.CARD_NO
+		          AND E.COMPANY_CD      = #{companyCd}                                                      
+		          AND E.COMPANY_CD      = M.COMPANY_CD
+		          AND E.CARD_NO         = M.CARD_NO   
+		          AND E.USE_YN          = 'Y'
+		          AND E.DEL_YN          = 'N'
+		          AND (M.SEC1_USER_ID   IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach> 
+					   OR M.SEC2_USER_ID IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach>
+					   )
+		          AND C.CARD_NUM        = G.CARD_NUM
+		          AND C.AUTH_DATE       = G.AUTH_DATE
+		          AND C.AUTH_NUM        = G.AUTH_NUM
+		          AND C.GEORAE_STAT     = G.GEORAE_STAT
+		          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		          AND C.GEORAE_COLL     = G.GEORAE_COLL
+		          AND M.SEC_CARD_YN     = 'Y'
+		          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		          AND C.CARD_NUM NOT IN (
+		                                    SELECT A.CARD_NUM                    
+		                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                     WHERE 1=1
+		                                          AND A.CARD_NUM = E.CARD_NO
+		                                          AND E.COMPANY_CD = #{companyCd}
+		                                          AND E.COMPANY_CD=S.COMPANY_CD
+		                                          AND E.CARD_NO=S.CARD_NO                  
+		                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		                                 )      
+		          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                          AND A.DEL_YN = 'N' --고정
+		                     )                            
+		          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		    UNION  ALL                          
+		        SELECT C.CARD_NUM
+		             , C.AUTH_DATE
+		             , C.CARD_NAME
+		             , C.MERC_NAME
+		             , C.REQUEST_AMOUNT
+		             , C.GEORAE_COLL
+		             , '' AS RQ_USER_NM             
+		             , '' AS RQ_DEPT_NM              
+		             , '' AS APPROVAL_ID
+		             , '' AS ACCOUNT_NM
+		             , '' AS ACCOUNT2_NM
+		             , '' AS DETAILS
+		             , '' AS FINANCE_NO
+		             , '' AS JUNPYO_ST_CD
+		             , '' AS JUNPYO_ST_NM
+		             , 'AAAA' AS APPROVAL_STATUS_CD
+		         FROM CARD_AQ_TMP C, EAC_CARD_AQ_MGMT G 
+		        WHERE 1=1
+		          AND C.CARD_NUM        = G.CARD_NUM
+		          AND C.AUTH_DATE       = G.AUTH_DATE
+		          AND C.AUTH_NUM        = G.AUTH_NUM
+		          AND C.GEORAE_STAT     = G.GEORAE_STAT
+		          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		          AND C.GEORAE_COLL     = G.GEORAE_COLL
+		          AND G.ACT_USER_ID IS NOT NULL
+		          AND G.ACT_USER_ID     IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach>
+		          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		          AND C.CARD_NUM NOT IN (
+		                                    SELECT A.CARD_NUM                    
+		                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                     WHERE 1=1
+		                                          AND A.CARD_NUM = E.CARD_NO
+		                                          AND E.COMPANY_CD = #{companyCd}
+		                                          AND E.COMPANY_CD=S.COMPANY_CD
+		                                          AND E.CARD_NO=S.CARD_NO                  
+		                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		                                 )      
+		          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                          AND A.DEL_YN = 'N' --고정
+		                     )
+		          AND C.AUTH_DATE BETWEEN  #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일
+ 	</sql>
+ 	
+ 	<sql id="UnApproved_RepDept">
+	        SELECT C.CARD_NUM
+	             , C.AUTH_DATE
+	             , C.CARD_NAME
+	             , C.MERC_NAME
+	             , C.REQUEST_AMOUNT
+	             , C.GEORAE_COLL
+	             , '' AS RQ_USER_NM             
+	             , '' AS RQ_DEPT_NM              
+	             , '' AS APPROVAL_ID
+	             , '' AS ACCOUNT_NM
+	             , '' AS ACCOUNT2_NM
+	             , '' AS DETAILS
+	             , '' AS FINANCE_NO
+	             , '' AS JUNPYO_ST_CD
+	             , '' AS JUNPYO_ST_NM
+	             , 'AAAA' AS APPROVAL_STATUS_CD
+	           FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G, EAC_CARD_MGMT M
+	        WHERE 1=1
+	          AND C.CARD_NUM        = D.CARD_NO
+	          AND D.COMPANY_CD      = #{companyCd}
+	          AND D.USE_YN          = 'Y'
+	          AND D.DEL_YN          = 'N'
+	          AND C.CARD_NUM        = G.CARD_NUM
+	          AND C.AUTH_DATE       = G.AUTH_DATE
+	          AND C.AUTH_NUM        = G.AUTH_NUM
+	          AND C.GEORAE_STAT     = G.GEORAE_STAT
+	          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+	          AND C.GEORAE_COLL     = G.GEORAE_COLL
+	          AND D.COMPANY_CD      = M.COMPANY_CD
+	          AND D.CARD_NO         = M.CARD_NO   
+	          AND (M.REP_CARD_YN='Y' 
+	          			AND M.REP_USER_ID IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach> 
+				)   -- 검색조건 : 로그인한 사용자ID (대체자)
+	          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+	          AND C.CARD_NUM NOT IN (
+	                                    SELECT A.CARD_NUM                    
+	                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+	                                     WHERE 1=1
+	                                          AND A.CARD_NUM = E.CARD_NO
+	                                          AND E.COMPANY_CD = #{companyCd}
+	                                          AND E.COMPANY_CD=S.COMPANY_CD
+	                                          AND E.CARD_NO=S.CARD_NO                  
+	                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+	                                 )      
+	          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+	              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+	                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+	                        WHERE 1=1
+	                          AND A.COMPANY_CD = #{companyCd}
+	                          AND A.COMPANY_CD = I.COMPANY_CD
+	                          AND A.APPROVAL_ID = I.APPROVAL_ID
+	                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정 : 재품의 한것도 빠지게 됨
+	                          AND A.DEL_YN = 'N' --고정
+	                     )                           
+	          AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}           -- 검색조건 : 카드승인일 
+ 	</sql>
+ 	
+ 	<sql id="Approved_ApprovalStatusDept">
+		        SELECT AI.CARD_NUM
+		             , AI.AUTH_DATE
+		             , AI.CARD_NAME
+		             , AI.MERC_NAME
+		             , AI.REQUEST_AMOUNT
+		             , AI.GEORAE_COLL
+		             , A.RQ_USER_NM             
+		             , A.RQ_DEPT_NM              
+		             , A.APPROVAL_ID
+		             , A.ACCOUNT_NM
+		             , AI.ACCOUNT2_NM
+		             , AI.DETAILS
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN MA.FINANCE_NO
+		               WHEN 'SING' THEN MA.FINANCE_NO
+		               WHEN 'SAPR' THEN MA.FINANCE_NO
+		               ELSE             AI.FINANCE_NO
+		               END AS FINANCE_NO 
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN MA.JUNPYO_ST_CD
+		               WHEN 'SING' THEN MA.JUNPYO_ST_CD
+		               WHEN 'SAPR' THEN MA.JUNPYO_ST_CD
+		               ELSE             AI.JUNPYO_ST_CD
+		               END AS JUNPYO_ST_CD 
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD)  
+		               WHEN 'SING' THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD) 
+		               WHEN 'SAPR' THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD) 
+		               ELSE             FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',AI.JUNPYO_ST_CD) 
+		               END AS JUNPYO_ST_NM
+		             , A.APPROVAL_STATUS_CD
+		          FROM EAC_CARD_AQ_MGMT G
+		             , EAC_APPROVAL A
+		             , EAC_APPROVAL_ITEM AI
+		             , (SELECT ASS.COMPANY_CD, ASS.S_APPROVAL_ID, ASS.S_APPROVAL_SEQ, ASS.FINANCE_NO, ASS.JUNPYO_ST_CD
+		                  FROM EAC_APPROVAL AAS
+				             , EAC_APPROVAL_ITEM ASS 
+				         WHERE 1=1
+				           AND ASS.COMPANY_CD	  = AAS.COMPANY_CD
+				           AND ASS.APPROVAL_ID    = AAS.APPROVAL_ID
+				           AND AAS.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR')
+				           AND AAS.DEL_YN        = 'N'
+				       ) MA
+		         WHERE 1=1
+		           AND A.COMPANY_CD       = #{companyCd}
+		           AND A.COMPANY_CD       = AI.COMPANY_CD
+		           AND A.APPROVAL_ID      = AI.APPROVAL_ID
+		           AND A.DEL_YN           = 'N'
+		           AND AI.CARD_NUM        = G.CARD_NUM
+		           AND AI.AUTH_DATE       = G.AUTH_DATE
+		           AND AI.AUTH_NUM        = G.AUTH_NUM
+		           AND AI.GEORAE_STAT     = G.GEORAE_STAT
+		           AND AI.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		           AND AI.GEORAE_COLL     = G.GEORAE_COLL
+		           AND AI.COMPANY_CD	  = MA.COMPANY_CD (+)
+		           AND AI.APPROVAL_ID     = MA.S_APPROVAL_ID (+)
+		           AND AI.SEQ			  = MA.S_APPROVAL_SEQ (+)
+		           AND (A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                OR (A.APPROVAL_STATUS_CD = 'NREJ' 
+								AND (AI.CARD_NUM, AI.AUTH_DATE, AI.AUTH_NUM, AI.GEORAE_STAT, AI.REQUEST_AMOUNT, AI.GEORAE_COLL) 
+						              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+						                         FROM EAC_APPROVAL A1, EAC_APPROVAL_ITEM I
+						                        WHERE 1=1
+						                          AND A1.COMPANY_CD = #{companyCd}
+						                          AND A1.COMPANY_CD = I.COMPANY_CD
+						                          AND A1.APPROVAL_ID = I.APPROVAL_ID
+						                          AND A1.APPROVAL_STATUS_CD IN ('NREQ','NAPR','EAPR') -- 고정 : 재품의 한것도 빠지게 됨
+						                          AND A1.DEL_YN = 'N' --고정
+						                     )  		                    
+		                   )
+		               ) 
+		           AND (G.CARD_USING_TP_CD = '1' OR G.CARD_USING_TP_CD IS NULL) -- 고정 : 법인용  또는 지정 안된 것
+		           AND AI.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}            -- 검색조건 : 카드승인일
+				<if test='cardUserCode == "1"'>     
+		           AND A.RQ_USER_ID       IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach> -- 검색조건 : 사용자ID (부서)      
+				</if>
+				<if test='cardUserCode == "2"'>     
+		           AND (A.RQ_USER_ID <![CDATA[<>]]> A.RRQ_USER_ID AND A.RRQ_USER_ID         IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach>) -- 검색조건 : 사용자ID (대체자)      
+				</if>
+				<if test='financeNo != null and financeNo != "all"'>
+				   AND AI.FINANCE_NO     LIKE '%'||#{financeNo}||'%'               
+				</if>
+				 <if test='approvalStatusCd !=null and approvalStatusCd != "all"'>
+				   AND A.APPROVAL_STATUS_CD = #{approvalStatusCd}                              
+				 </if>
+ 	</sql>
+ 	
+ 	<sql id="UnApproved_ExceptDept">
+	        SELECT C.CARD_NUM
+	             , C.AUTH_DATE
+	             , C.CARD_NAME
+	             , C.MERC_NAME
+	             , C.REQUEST_AMOUNT
+	             , C.GEORAE_COLL
+	             , '' AS RQ_USER_NM
+	             , '' AS RQ_DEPT_NM           
+	             , '' AS APPROVAL_ID
+	             , '' AS ACCOUNT_NM
+	             , '' AS ACCOUNT2_NM
+	             , '' AS DETAILS
+	             , '' AS FINANCE_NO
+	             , '' AS JUNPYO_ST_CD
+	             , '' AS JUNPYO_ST_NM
+	             , 'ZZZZ' AS APPROVAL_STATUS_CD
+	          FROM CARD_AQ_TMP C
+	             , EAC_CARD_AQ_MGMT G
+	             , EAC_CARD D 
+	         WHERE 1=1
+	              AND C.CARD_NUM        = D.CARD_NO
+	              AND D.COMPANY_CD      = #{companyCd}
+	              AND D.USE_YN          = 'Y'
+	              AND D.DEL_YN          = 'N'
+	              AND D.USER_ID         IN
+					   <foreach item="item" index="index" collection="userList" open="(" separator="," close=")">
+					   		#{item.userId}
+					   </foreach>                              -- 검색조건 : 사용자ID (부서)
+	              AND C.CARD_NUM        = G.CARD_NUM
+	              AND C.AUTH_DATE       = G.AUTH_DATE
+	              AND C.AUTH_NUM        = G.AUTH_NUM
+	              AND C.GEORAE_STAT     = G.GEORAE_STAT
+	              AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+	              AND C.GEORAE_COLL     = G.GEORAE_COLL
+	              AND G.CARD_USING_TP_CD = '2' -- 고정 : 개인용      
+	              AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}            -- 검색조건 : 카드승인일    
+ 	</sql>
+ 	
+ 	
+ 	<!-- 전체 카드처리현황 - 미상신 -->
+ 	<select id="getCardProcessStatusListAll" parameterType="cardProcessVo" resultType="cardProcessVo">
+ 		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+		SELECT *
+		  FROM 
+		     (
+		       <include refid="UnApproved_All"/>
+			   union      
+		       <include refid="UnApproved_RepAll"/> 
+		       union      
+      		   <include refid="Approved_ApprovalStatusAll"/>
+		       union      
+		       <include refid="UnApproved_ExceptAll"/>
+			 )
+		 ORDER BY approvalStatusCd ASC, authDate DESC
+		 <if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+ 	</select>
+
+ 	<select id="getCardProcessStatusListAllCount" parameterType="cardProcessVo" resultType="long">
+		SELECT count(1)
+		  FROM 
+		     (
+		       <include refid="UnApproved_All"/>
+			   union      
+		       <include refid="UnApproved_RepAll"/> 
+		       union      
+      		   <include refid="Approved_ApprovalStatusAll"/>
+		       union      
+		       <include refid="UnApproved_ExceptAll"/>
+			 )
+ 	</select>
+
+	<select id="getCardProcessStatusListAllSum" parameterType="cardProcessVo" resultType="long">
+		SELECT nvl(sum(requestAmount), 0)
+		  FROM 
+		     (
+		       <include refid="UnApproved_All"/>
+			   union      
+		       <include refid="UnApproved_RepAll"/> 
+		       union      
+      		   <include refid="Approved_ApprovalStatusAll"/>
+		       union      
+		       <include refid="UnApproved_ExceptAll"/>
+			 )
+ 	</select>
+ 	
+ 	<select id="getUnapprovedListAll" parameterType="cardProcessVo" resultType="cardProcessVo">
+ 		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+
+			<include refid="UnApproved_All"/>
+			union
+			<include refid="UnApproved_RepAll"/>
+
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<select id="getUnapprovedListAllCount" parameterType="cardProcessVo" resultType="long">
+
+    	SELECT count(1)
+    	  FROM (
+			<include refid="UnApproved_All"/>
+			union
+			<include refid="UnApproved_RepAll"/>
+			)			
+	       
+	</select>
+	
+	<select id="getUnapprovedListAllSum" parameterType="cardProcessVo" resultType="long">
+
+    	SELECT nvl(sum(requestAmount), 0)
+    	  FROM (
+			<include refid="UnApproved_All"/>
+			union
+			<include refid="UnApproved_RepAll"/>
+			)			
+	       
+	</select>
+	
+	<select id="getApprovedListAll" parameterType="cardProcessVo" resultType="cardProcessVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+
+			<include refid="Approved_ApprovalStatusAll"/>
+
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<select id="getApprovedListAllCount" parameterType="cardProcessVo" resultType="long">
+		SELECT COUNT(1)
+		  FROM (
+			<include refid="Approved_ApprovalStatusAll"/>
+			)
+	</select>
+	
+	<select id="getApprovedListAllSum" parameterType="cardProcessVo" resultType="long">
+		SELECT nvl(sum(requestAmount), 0)
+		  FROM (
+			<include refid="Approved_ApprovalStatusAll"/>
+			)
+	</select>	
+	
+	<select id="getExceptListAll" parameterType="cardProcessVo" resultType="cardProcessVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+
+			<include refid="UnApproved_ExceptAll"/>
+
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<select id="getExceptListAllCount" parameterType="cardProcessVo" resultType="long">
+		SELECT COUNT(1)
+		  FROM (
+		<include refid="UnApproved_ExceptAll"/>
+			)
+	</select>
+	
+	<select id="getExceptListAllSum" parameterType="cardProcessVo" resultType="long">
+		SELECT nvl(sum(requestAmount), 0)
+		  FROM (
+		<include refid="UnApproved_ExceptAll"/>
+			)
+
+	</select>
+ 	
+ 	
+ 	<sql id="UnApproved_All">
+ 	SELECT * 
+ 	  FROM
+ 	     ( SELECT C.CARD_NUM					AS cardNum      	--카드번호
+		        , C.AUTH_DATE					AS authDate			--승인시간
+		        , C.CARD_NAME					AS cardName			--카드회사
+		        , C.MERC_NAME					AS mercName			--상호
+		        , C.REQUEST_AMOUNT				AS requestAmount	--합계금액
+		        , C.GEORAE_COLL					AS georaeColl		--거래번호?
+		        , C.AUTH_TIME					AS authTime			--승인시간
+		        , C.AUTH_NUM					AS authNum			--승인번호
+		        , C.MERC_ADDR					AS mercAddr			--주소
+		        , C.MCC_NAME					AS mccName			--업종
+		        , C.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+		        , ''							AS rqUserNm
+		        , ''							AS rqDeptNm
+		        , ''							AS approvalId
+		        , ''							AS accountNm
+		        , ''							AS account2Nm
+		        , ''							AS details
+		        , ''							AS financeNo
+		        , ''							AS junpyoStCd
+		        , ''							AS junpyoStNm
+		        , 'AAAA' 						AS approvalStatusCd
+		        , DE.DEPT_NM					AS deptNm
+		        , U.USER_NM						AS ownUserNm
+		     FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G, SYS_DEPT DE, V_SYS_USER U
+		    WHERE 1=1
+		      AND C.CARD_NUM        = D.CARD_NO
+		      AND D.COMPANY_CD      = #{companyCd}
+		      AND D.USE_YN          = 'Y'
+		      AND D.DEL_YN          = 'N'
+		      AND D.USER_ID			= U.USER_ID (+)
+		      AND U.DEPT_CD		  	= DE.DEPT_CD
+		      <if test="ownUserNm!=null and ownUserNm!='all'">
+	              		AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          </if>
+		      <if test="deptCd!=null and deptCd!='all'">
+		      	AND DE.DEPT_CD		= #{deptCd}		        	
+		      </if>
+		      <if test="deptNm!=null and deptNm!='all'">
+		       	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'
+		      </if>
+		      <if test="mercName!=null and mercName!='all'">
+		      	AND C.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+		      </if>
+
+		      <!-- AND D.USER_ID         = #{userId} -->
+		      AND C.CARD_NUM        = G.CARD_NUM
+		      AND C.AUTH_DATE       = G.AUTH_DATE
+		      AND C.AUTH_NUM        = G.AUTH_NUM
+		      AND C.GEORAE_STAT     = G.GEORAE_STAT
+		      AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		      AND C.GEORAE_COLL     = G.GEORAE_COLL
+		      AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		      AND C.CARD_NUM NOT IN (
+		            SELECT A.CARD_NUM FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		            WHERE 1=1
+		                AND A.CARD_NUM = E.CARD_NO
+		                AND E.COMPANY_CD = #{companyCd}
+		                AND E.COMPANY_CD=S.COMPANY_CD
+		                AND E.CARD_NO=S.CARD_NO                  
+		                AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		        )
+		      AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR')
+		                          AND A.DEL_YN = 'N'
+		     				  )
+		      AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일
+			
+		UNION ALL                                        
+		    
+		   SELECT C.CARD_NUM					AS cardNum      	--카드번호
+		        , C.AUTH_DATE					AS authDate			--승인시간
+		        , C.CARD_NAME					AS cardName			--카드회사
+		        , C.MERC_NAME					AS mercName			--상호
+		        , C.REQUEST_AMOUNT				AS requestAmount	--합계금액
+		        , C.GEORAE_COLL					AS georaeColl		--거래번호?
+		        , C.AUTH_TIME					AS authTime			--승인시간
+		        , C.AUTH_NUM					AS authNum			--승인번호
+		        , C.MERC_ADDR					AS mercAddr			--주소
+		        , C.MCC_NAME					AS mccName			--업종
+		        , C.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+		        , ''							AS rqUserNm
+		        , ''							AS rqDeptNm
+		        , ''							AS approvalId
+		        , ''							AS accountNm
+		        , ''							AS account2Nm
+		        , ''							AS details
+		        , ''							AS financeNo
+		        , ''							AS junpyoStCd
+		        , ''							AS junpyoStNm
+		        , 'AAAA' 						AS approvalStatusCd
+		        , DE.DEPT_NM					AS deptNm
+		        , U.USER_NM						AS ownUserNm
+		    FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_SCHEDULE S, EAC_CARD_AQ_MGMT G, SYS_DEPT DE, V_SYS_USER U
+		    WHERE 1=1
+		        AND C.CARD_NUM        = E.CARD_NO
+		        AND E.COMPANY_CD      = #{companyCd}                                                    
+		        AND E.COMPANY_CD      = S.COMPANY_CD
+		        AND E.CARD_NO         = S.CARD_NO   
+		        AND E.USE_YN          = 'Y'
+		        AND E.DEL_YN          = 'N'
+		        AND S.USER_ID		  = U.USER_ID (+)
+		        AND U.DEPT_CD		  = DE.DEPT_CD
+		       <if test="ownUserNm!=null and ownUserNm!='all'">
+	              		AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          </if>
+		        <if test="deptCd!=null and deptCd!='all'">
+		        	AND DE.DEPT_CD		= #{deptCd}		        	
+		        </if>
+		        <if test="deptNm!=null and deptNm!='all'">
+		        	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'		        	
+		        </if>
+		        <if test="mercName!=null and mercName!='all'">
+		      		AND C.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+		      </if>
+		        <!--AND S.USER_ID         = #{userId} -->
+		        AND C.CARD_NUM        = G.CARD_NUM
+		        AND C.AUTH_DATE       = G.AUTH_DATE
+		        AND C.AUTH_NUM        = G.AUTH_NUM
+		        AND C.GEORAE_STAT     = G.GEORAE_STAT
+		        AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		        AND C.GEORAE_COLL     = G.GEORAE_COLL
+		        AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		        AND C.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY
+		        AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		                     NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                                FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                               WHERE 1=1
+				                         AND A.COMPANY_CD = #{companyCd}
+		                                 AND A.COMPANY_CD = I.COMPANY_CD
+		                                 AND A.APPROVAL_ID = I.APPROVAL_ID
+		                                 AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR')
+		                                 AND A.DEL_YN = 'N'
+		                                )     
+		        AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+			
+		UNION ALL                          
+		    
+		    SELECT C.CARD_NUM					AS cardNum      	--카드번호
+		        , C.AUTH_DATE					AS authDate			--승인시간
+		        , C.CARD_NAME					AS cardName			--카드회사
+		        , C.MERC_NAME					AS mercName			--상호
+		        , C.REQUEST_AMOUNT				AS requestAmount	--합계금액
+		        , C.GEORAE_COLL					AS georaeColl		--거래번호?
+		        , C.AUTH_TIME					AS authTime			--승인시간
+		        , C.AUTH_NUM					AS authNum			--승인번호
+		        , C.MERC_ADDR					AS mercAddr			--주소
+		        , C.MCC_NAME					AS mccName			--업종
+		        , C.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+		        , ''							AS rqUserNm
+		        , ''							AS rqDeptNm
+		        , ''							AS approvalId
+		        , ''							AS accountNm
+		        , ''							AS account2Nm
+		        , ''							AS details
+		        , ''							AS financeNo
+		        , ''							AS junpyoStCd
+		        , ''							AS junpyoStNm
+		        , 'AAAA' 						AS approvalStatusCd
+		        , DE.DEPT_NM					AS deptNm
+		        , U.USER_NM						AS ownUserNm
+		    FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_MGMT M, EAC_CARD_AQ_MGMT G, SYS_DEPT DE, V_SYS_USER U
+		    WHERE 1=1
+		        AND C.CARD_NUM        = E.CARD_NO
+		        AND E.COMPANY_CD      = #{companyCd}                                                      
+		        AND E.COMPANY_CD      = M.COMPANY_CD
+		        AND E.CARD_NO         = M.CARD_NO   
+		        AND E.USE_YN          = 'Y'
+		        AND E.DEL_YN          = 'N'
+		        AND E.DEPT_CD		  = DE.DEPT_CD (+)
+		        AND (M.SEC1_USER_ID   = U.USER_ID  OR M.SEC2_USER_ID = U.USER_ID )
+		        AND U.DEPT_CD		  = DE.DEPT_CD
+		        <if test="ownUserNm!=null and ownUserNm!='all'">
+	              		AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          </if>
+		        <if test="deptCd!=null and deptCd!='all'">
+		        	AND DE.DEPT_CD		= #{deptCd}		        	
+		        </if>
+		        <if test="deptNm!=null and deptNm!='all'">
+		        	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'		        	
+		        </if>
+		        <if test="mercName!=null and mercName!='all'">
+		      		AND C.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+		      </if>
+		        <!-- AND (M.SEC1_USER_ID   = #{userId} OR M.SEC2_USER_ID = #{userId}) -->
+		        AND C.CARD_NUM        = G.CARD_NUM
+		        AND C.AUTH_DATE       = G.AUTH_DATE
+		        AND C.AUTH_NUM        = G.AUTH_NUM
+		        AND C.GEORAE_STAT     = G.GEORAE_STAT
+		        AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		        AND C.GEORAE_COLL     = G.GEORAE_COLL
+		        AND M.SEC_CARD_YN     = 'Y'
+		        AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+		        AND C.CARD_NUM NOT IN (SELECT A.CARD_NUM FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                WHERE 1=1
+		                                    AND A.CARD_NUM = E.CARD_NO
+		                                    AND E.COMPANY_CD = #{companyCd}
+		                                    AND E.COMPANY_CD=S.COMPANY_CD
+		                                    AND E.CARD_NO=S.CARD_NO                  
+		                                    AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		        )
+		        AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR')
+		                          AND A.DEL_YN = 'N'
+		                     )                            
+		        AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일                                                
+		UNION ALL                          
+		    SELECT C.CARD_NUM					AS cardNum      	--카드번호
+		        , C.AUTH_DATE					AS authDate			--승인시간
+		        , C.CARD_NAME					AS cardName			--카드회사
+		        , C.MERC_NAME					AS mercName			--상호
+		        , C.REQUEST_AMOUNT				AS requestAmount	--합계금액
+		        , C.GEORAE_COLL					AS georaeColl		--거래번호?
+		        , C.AUTH_TIME					AS authTime			--승인시간
+		        , C.AUTH_NUM					AS authNum			--승인번호
+		        , C.MERC_ADDR					AS mercAddr			--주소
+		        , C.MCC_NAME					AS mccName			--업종
+		        , C.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+		        , ''							AS rqUserNm
+		        , ''							AS rqDeptNm
+		        , ''							AS approvalId
+		        , ''							AS accountNm
+		        , ''							AS account2Nm
+		        , ''							AS details
+		        , ''							AS financeNo
+		        , ''							AS junpyoStCd
+		        , ''							AS junpyoStNm
+		        , 'AAAA' 						AS approvalStatusCd
+		        , DE.DEPT_NM					AS deptNm
+		        , U.USER_NM						AS ownUserNm
+		    FROM CARD_AQ_TMP C, EAC_CARD_AQ_MGMT G, V_SYS_USER U, SYS_DEPT DE
+		    WHERE 1=1
+		        AND C.CARD_NUM        = G.CARD_NUM
+		        AND C.AUTH_DATE       = G.AUTH_DATE
+		        AND C.AUTH_NUM        = G.AUTH_NUM
+		        AND C.GEORAE_STAT     = G.GEORAE_STAT
+		        AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		        AND C.GEORAE_COLL     = G.GEORAE_COLL
+		        AND G.ACT_USER_ID IS NOT NULL
+		        AND G.ACT_USER_ID	  = U.USER_ID (+)
+		        AND U.DEPT_CD		  = DE.DEPT_CD
+		        <if test="ownUserNm!=null and ownUserNm!='all'">
+	              		AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          </if>
+		        <if test="deptCd!=null and deptCd!='all'">
+		        	AND DE.DEPT_CD		= #{deptCd}		        	
+		        </if>
+		        <if test="deptNm!=null and deptNm!='all'">
+		        	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'		        	
+		        </if>
+		        <if test="mercName!=null and mercName!='all'">
+			      	AND C.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+			      </if>
+		        <!-- AND G.ACT_USER_ID     = #{userId} -->
+		        AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '2') -- 개인용 제외
+		        AND C.CARD_NUM NOT IN (SELECT A.CARD_NUM                    
+		                                FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+		                                WHERE 1=1
+		                                    AND A.CARD_NUM = E.CARD_NO
+		                                    AND E.COMPANY_CD = #{companyCd}
+		                                    AND E.COMPANY_CD=S.COMPANY_CD
+		                                    AND E.CARD_NO=S.CARD_NO                  
+		                                    AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+		          )
+		        AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+		              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+		                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                        WHERE 1=1
+		                          AND A.COMPANY_CD = #{companyCd}
+		                          AND A.COMPANY_CD = I.COMPANY_CD
+		                          AND A.APPROVAL_ID = I.APPROVAL_ID
+		                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR')
+		                          AND A.DEL_YN = 'N'
+		                     )
+				AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}             -- 검색조건 : 카드승인일
+		)
+		WHERE 1=1 	
+ 	</sql>
+ 	
+ 	<sql id="UnApproved_RepAll">
+	        SELECT C.CARD_NUM					AS cardNum      	--카드번호
+		        , C.AUTH_DATE					AS authDate			--승인시간
+		        , C.CARD_NAME					AS cardName			--카드회사
+		        , C.MERC_NAME					AS mercName			--상호
+		        , C.REQUEST_AMOUNT				AS requestAmount	--합계금액
+		        , C.GEORAE_COLL					AS georaeColl		--거래번호?
+		        , C.AUTH_TIME					AS authTime			--승인시간
+		        , C.AUTH_NUM					AS authNum			--승인번호
+		        , C.MERC_ADDR					AS mercAddr			--주소
+		        , C.MCC_NAME					AS mccName			--업종
+		        , C.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+		        , ''							AS rqUserNm
+		        , ''							AS rqDeptNm
+		        , ''							AS approvalId
+		        , ''							AS accountNm
+		        , ''							AS account2Nm
+		        , ''							AS details
+		        , ''							AS financeNo
+		        , ''							AS junpyoStCd
+		        , ''							AS junpyoStNm
+		        , 'AAAA' 						AS approvalStatusCd
+		        , DE.DEPT_NM					AS deptNm
+		        , U.USER_NM						AS ownUserNm
+	           FROM CARD_AQ_TMP C, EAC_CARD D, EAC_CARD_AQ_MGMT G, EAC_CARD_MGMT M, SYS_DEPT DE, V_SYS_USER U
+	        WHERE 1=1
+	          AND C.CARD_NUM        = D.CARD_NO
+	          AND D.COMPANY_CD      = #{companyCd}
+	          AND D.USE_YN          = 'Y'
+	          AND D.DEL_YN          = 'N'
+	          AND D.USER_ID			= U.USER_ID(+)
+	          AND U.DEPT_CD		  	= DE.DEPT_CD
+	         <if test="ownUserNm!=null and ownUserNm!='all'">
+	              	AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          </if>
+		        <if test="deptCd!=null and deptCd!='all'">
+		        	AND DE.DEPT_CD		= #{deptCd}		        	
+		        </if>
+		        <if test="deptNm!=null and deptNm!='all'">
+		        	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'		        	
+		        </if>
+		        <if test="mercName!=null and mercName!='all'">
+		      		AND C.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+		        </if>
+	          AND C.CARD_NUM        = G.CARD_NUM
+	          AND C.AUTH_DATE       = G.AUTH_DATE
+	          AND C.AUTH_NUM        = G.AUTH_NUM
+	          AND C.GEORAE_STAT     = G.GEORAE_STAT
+	          AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+	          AND C.GEORAE_COLL     = G.GEORAE_COLL
+	          AND D.COMPANY_CD      = M.COMPANY_CD
+	          AND D.CARD_NO         = M.CARD_NO   
+	          <!-- AND (M.REP_CARD_YN='Y' AND M.REP_USER_ID = #{userId} )   - 검색조건 : 로그인한 사용자ID (대체자) -->
+	          AND (G.CARD_USING_TP_CD IS NULL OR G.CARD_USING_TP_CD = '1') -- 개인용 제외
+	          AND C.CARD_NUM NOT IN (
+	                                    SELECT A.CARD_NUM                    
+	                                       FROM CARD_AQ_TMP A, EAC_CARD E, EAC_CARD_SCHEDULE S
+	                                     WHERE 1=1
+	                                          AND A.CARD_NUM = E.CARD_NO
+	                                          AND E.COMPANY_CD = #{companyCd}
+	                                          AND E.COMPANY_CD=S.COMPANY_CD
+	                                          AND E.CARD_NO=S.CARD_NO                  
+	                                          AND A.AUTH_DATE BETWEEN S.START_DAY AND S.END_DAY 
+	                                 )      
+	          AND (C.CARD_NUM, C.AUTH_DATE, C.AUTH_NUM, C.GEORAE_STAT, C.REQUEST_AMOUNT, C.GEORAE_COLL) 
+	              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+	                         FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+	                        WHERE 1=1
+	                          AND A.COMPANY_CD = #{companyCd}
+	                          AND A.COMPANY_CD = I.COMPANY_CD
+	                          AND A.APPROVAL_ID = I.APPROVAL_ID
+	                          AND A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정 : 재품의 한것도 빠지게 됨
+	                          AND A.DEL_YN = 'N' --고정
+	                     )                           
+	          AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}           -- 검색조건 : 카드승인일 
+ 	</sql>
+ 	
+ 	<sql id="Approved_ApprovalStatusAll">
+		        SELECT AI.CARD_NUM					AS cardNum      	--카드번호
+			        , AI.AUTH_DATE					AS authDate			--승인시간
+			        , AI.CARD_NAME					AS cardName			--카드회사
+			        , AI.MERC_NAME					AS mercName			--상호
+			        , AI.REQUEST_AMOUNT				AS requestAmount	--합계금액
+			        , AI.GEORAE_COLL				AS georaeColl		--거래번호?
+			        , AI.AUTH_TIME					AS authTime			--승인시간
+			        , AI.AUTH_NUM					AS authNum			--승인번호
+			        , AI.MERC_ADDR					AS mercAddr			--주소
+			        , AI.MCC_NAME					AS mccName			--업종
+			        , AI.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+			        , A.RQ_USER_NM					AS rqUserNm
+			        , A.RQ_DEPT_NM					AS rqDeptNm
+			        , A.APPROVAL_ID					AS approvalId
+			        , A.ACCOUNT_NM					AS accountNm
+			        , AI.ACCOUNT2_NM				AS account2Nm
+			        , AI.DETAILS					AS details
+			        , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN MA.FINANCE_NO
+		               WHEN 'SING' THEN MA.FINANCE_NO
+		               WHEN 'SAPR' THEN MA.FINANCE_NO
+		               ELSE             AI.FINANCE_NO
+		               END 							AS financeNo
+		            , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN MA.JUNPYO_ST_CD
+		               WHEN 'SING' THEN MA.JUNPYO_ST_CD
+		               WHEN 'SAPR' THEN MA.JUNPYO_ST_CD
+		               ELSE             AI.JUNPYO_ST_CD
+		               END 							AS junpyoStCd
+		             , CASE A.APPROVAL_STATUS_CD
+		               WHEN 'SR'   THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD)  
+		               WHEN 'SING' THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD) 
+		               WHEN 'SAPR' THEN FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',MA.JUNPYO_ST_CD) 
+		               ELSE             FN_GET_COM_CD(#{companyCd}, 'JUNPYO_ST_CD',AI.JUNPYO_ST_CD) 
+		               END 							AS junpyoStNm
+			        , A.APPROVAL_STATUS_CD 			AS approvalStatusCd
+			        , DE.DEPT_NM					AS deptNm
+			        , U.USER_NM						AS ownUserNm
+		          FROM EAC_CARD_AQ_MGMT G
+		             , EAC_APPROVAL A
+		             , EAC_APPROVAL_ITEM AI
+		             , (SELECT ASS.COMPANY_CD, ASS.S_APPROVAL_ID, ASS.S_APPROVAL_SEQ, ASS.FINANCE_NO, ASS.JUNPYO_ST_CD
+		                  FROM EAC_APPROVAL AAS
+				             , EAC_APPROVAL_ITEM ASS 
+				         WHERE 1=1
+				           AND ASS.COMPANY_CD	  = AAS.COMPANY_CD
+				           AND ASS.APPROVAL_ID    = AAS.APPROVAL_ID
+				           AND AAS.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR')
+				           AND AAS.DEL_YN        = 'N'
+				       ) MA
+				     , SYS_DEPT DE
+				     , V_SYS_USER U
+		         WHERE 1=1
+		           AND A.COMPANY_CD       = #{companyCd}
+		           AND A.COMPANY_CD       = AI.COMPANY_CD
+		           AND A.APPROVAL_ID      = AI.APPROVAL_ID
+		           AND A.DEL_YN           = 'N'
+		           AND AI.CARD_NUM        = G.CARD_NUM
+		           AND AI.AUTH_DATE       = G.AUTH_DATE
+		           AND AI.AUTH_NUM        = G.AUTH_NUM
+		           AND AI.GEORAE_STAT     = G.GEORAE_STAT
+		           AND AI.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+		           AND AI.GEORAE_COLL     = G.GEORAE_COLL
+		           AND AI.USER_ID		  = U.USER_ID (+)
+		           AND U.DEPT_CD		  = DE.DEPT_CD
+		           <if test="ownUserNm!=null and ownUserNm!='all'">
+	              		AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          		</if>
+			        <if test="deptCd!=null and deptCd!='all'">
+			        	AND DE.DEPT_CD		= #{deptCd}		        	
+			        </if>
+			        <if test="deptNm!=null and deptNm!='all'">
+			        	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'		        	
+			        </if>
+			        <if test="mercName!=null and mercName!='all'">
+				      	AND AI.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+				    </if>
+		           AND AI.COMPANY_CD	  = MA.COMPANY_CD (+)
+		           AND AI.APPROVAL_ID     = MA.S_APPROVAL_ID (+)
+		           AND AI.SEQ			  = MA.S_APPROVAL_SEQ (+)
+		           AND (A.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR','SR','SING','SAPR') -- 고정
+		                OR (A.APPROVAL_STATUS_CD = 'NREJ' 
+								AND (AI.CARD_NUM, AI.AUTH_DATE, AI.AUTH_NUM, AI.GEORAE_STAT, AI.REQUEST_AMOUNT, AI.GEORAE_COLL) 
+						              NOT IN ( SELECT I.CARD_NUM, I.AUTH_DATE, I.AUTH_NUM, I.GEORAE_STAT, I.REQUEST_AMOUNT, I.GEORAE_COLL
+						                         FROM EAC_APPROVAL A1, EAC_APPROVAL_ITEM I
+						                        WHERE 1=1
+						                          AND A1.COMPANY_CD = #{companyCd}
+						                          AND A1.COMPANY_CD = I.COMPANY_CD
+						                          AND A1.APPROVAL_ID = I.APPROVAL_ID
+						                          AND A1.APPROVAL_STATUS_CD IN ('NREQ','NING','NAPR','EAPR') -- 고정 : 재품의 한것도 빠지게 됨
+						                          AND A1.DEL_YN = 'N' --고정
+						                     )  		                    
+		                   )
+		               ) 
+		           AND (G.CARD_USING_TP_CD = '1' OR G.CARD_USING_TP_CD IS NULL) -- 고정 : 법인용  또는 지정 안된 것
+		           AND AI.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}            -- 검색조건 : 카드승인일
+				<if test='financeNo != null and financeNo != "all"'>
+				   AND AI.FINANCE_NO     LIKE '%'||#{financeNo}||'%'               
+				</if>
+				 <if test='approvalStatusCd !=null and approvalStatusCd != "all"'>
+				   AND A.APPROVAL_STATUS_CD = #{approvalStatusCd}                              
+				 </if>
+ 	</sql>
+ 	
+ 	<sql id="UnApproved_ExceptAll">
+	        SELECT C.CARD_NUM					AS cardNum      	--카드번호
+		        , C.AUTH_DATE					AS authDate			--승인시간
+		        , C.CARD_NAME					AS cardName			--카드회사
+		        , C.MERC_NAME					AS mercName			--상호
+		        , C.REQUEST_AMOUNT				AS requestAmount	--합계금액
+		        , C.GEORAE_COLL					AS georaeColl		--거래번호?
+		        , C.AUTH_TIME					AS authTime			--승인시간
+		        , C.AUTH_NUM					AS authNum			--승인번호
+		        , C.MERC_ADDR					AS mercAddr			--주소
+		        , C.MCC_NAME					AS mccName			--업종
+		        , C.MERC_SAUP_NO				AS mercSaupNo  		--사업자번호
+		        , ''							AS rqUserNm
+		        , ''							AS rqDeptNm
+		        , ''							AS approvalId
+		        , ''							AS accountNm
+		        , ''							AS account2Nm
+		        , ''							AS details
+		        , ''							AS financeNo
+		        , ''							AS junpyoStCd
+		        , ''							AS junpyoStNm
+		        , 'ZZZZ' 						AS approvalStatusCd
+		        , DE.DEPT_NM					AS deptNm
+		        , U.USER_NM						AS ownUserNm
+	          FROM CARD_AQ_TMP C
+	             , EAC_CARD_AQ_MGMT G
+	             , EAC_CARD D 
+	             , SYS_DEPT DE
+	             , V_SYS_USER U
+	         WHERE 1=1
+	              AND C.CARD_NUM        = D.CARD_NO
+	              AND D.COMPANY_CD      = #{companyCd}
+	              AND D.USE_YN          = 'Y'
+	              AND D.DEL_YN          = 'N'
+	              AND D.USER_ID			= U.USER_ID(+)
+	              AND U.DEPT_CD			= DE.DEPT_CD
+	              <if test="ownUserNm!=null and ownUserNm!='all'">
+	              		AND U.USER_NM         LIKE '%' || #{ownUserNm} || '%'
+	          	  </if>
+	              <if test="deptCd!=null and deptCd!='all'">
+			        	AND DE.DEPT_CD		= #{deptCd}
+			      </if>
+			      <if test="deptNm!=null and deptNm!='all'">
+			        	AND DE.DEPT_NM		LIKE '%' || #{deptNm} || '%'		        	
+			      </if>
+			      <if test="mercName!=null and mercName!='all'">
+		      			AND C.MERC_NAME  		LIKE '%' || #{mercName} || '%'
+		     	  </if>
+	              AND C.CARD_NUM        = G.CARD_NUM
+	              AND C.AUTH_DATE       = G.AUTH_DATE
+	              AND C.AUTH_NUM        = G.AUTH_NUM
+	              AND C.GEORAE_STAT     = G.GEORAE_STAT
+	              AND C.REQUEST_AMOUNT  = G.REQUEST_AMOUNT
+	              AND C.GEORAE_COLL     = G.GEORAE_COLL
+	              AND G.CARD_USING_TP_CD = '2' -- 고정 : 개인용      
+	              AND C.AUTH_DATE BETWEEN #{startAuthDate} AND #{endAuthDate}            -- 검색조건 : 카드승인일    
+ 	</sql>
+	
+	<select id="selectIndividualCard" resultType="individualCardVo" parameterType="individualCardVo">
+		 SELECT 
+		 		CASE 
+			 		WHEN B.NREQ_USER IS NULL THEN 0 
+			 		ELSE B.NREQ_USER
+		 		END											AS nreqUser
+		 	  , CASE 
+			 	  	WHEN C.COMMUSER IS NULL THEN 0 
+			 	  	ELSE C.COMMUSER
+		 	  	END											AS commUser
+		      , A.CARD_NO									AS cardNo
+		      , A.CARD_TP_CD								AS cardTpCd
+		      , A.CARD_TP_NM								AS cardTpNm
+		      , A.CARD_ST_CD								AS cardStCd
+		      , A.CARD_ST_NM								AS cardStNm
+		      , A.JOIN_DATE									AS joinDate
+		      , A.EXPIRE_DATE								AS expireDate
+		      , A.INCHUL_DATE								AS inchulDate
+		      , A.DEPT_CD									AS deptCd
+		      , A.USER_ID									AS userId
+		      , A.LIMIT_AMOUNT								AS limitAmount
+		      , A.GYEJWA_NO									AS gyejwaNo
+		      , A.GYELJE_DAY								AS gyeljeDay
+		      , A.P_BANK_BRANCH_NM							AS pBankBranchNm
+		      , A.P_BANK_USER_NM							AS pBankUserNm
+		      , A.REMARK									AS remark
+		      , D.COM_CD_NM									AS cardOwnCd
+		      , FN_GET_USER_INFO(#{companyCd}, A.JIJUNG_USER_ID,'USER_NM')	AS jijungUserNm
+		 FROM EAC_CARD A,
+		       (  SELECT COUNT (CARD_NUM) AS NREQ_USER, CARD_NUM, OWNER_ID
+		            FROM ( -- =================================== -- 2.1 대체자 : 대체자에 내가 지정된 카드 사용 건 -- ===================================
+		                  SELECT '21' AS APP_TYPE,
+		                         C.AUTH_DATE,
+		                         C.MERC_NAME,
+		                         C.AMT_AMOUNT,
+		                         C.VAT_AMOUNT,
+		                         C.REQUEST_AMOUNT,
+		                         C.CARD_NUM,
+		                         C.AUTH_NUM,
+		                         C.GEORAE_STAT,
+		                         C.GEORAE_COLL,
+		                         E.USER_ID AS OWNER_ID,
+		                         E.USER_ID AS NREQ_USER_ID,
+		                         G.CARD_USING_TP_CD
+		                    FROM CARD_AQ_TMP C,
+		                         EAC_CARD E,
+		                         EAC_CARD_MGMT M,
+		                         EAC_CARD_AQ_MGMT G
+		                   WHERE     1 = 1
+		                         AND C.CARD_NUM = E.CARD_NO
+		                         AND E.COMPANY_CD = #{companyCd}
+		                         AND E.COMPANY_CD = M.COMPANY_CD
+		                         AND E.CARD_NO = M.CARD_NO
+		                         AND C.CARD_NUM = G.CARD_NUM
+		                         AND C.AUTH_DATE = G.AUTH_DATE
+		                         AND C.AUTH_NUM = G.AUTH_NUM
+		                         AND C.GEORAE_STAT = G.GEORAE_STAT
+		                         AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+		                         AND C.GEORAE_COLL = G.GEORAE_COLL
+		                         AND (   G.CARD_USING_TP_CD = '1'
+		                              OR G.CARD_USING_TP_CD IS NULL) -- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+		                         AND (C.CARD_NUM,
+		                              C.AUTH_DATE,
+		                              C.AUTH_NUM,
+		                              C.GEORAE_STAT,
+		                              C.REQUEST_AMOUNT,
+		                              C.GEORAE_COLL) NOT IN
+		                                (SELECT I.CARD_NUM,
+		                                        I.AUTH_DATE,
+		                                        I.AUTH_NUM,
+		                                        I.GEORAE_STAT,
+		                                        I.REQUEST_AMOUNT,
+		                                        I.GEORAE_COLL
+		                                   FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                                  WHERE     1 = 1
+		                                        AND A.COMPANY_CD = #{companyCd}
+		                                        AND A.COMPANY_CD = I.COMPANY_CD
+		                                        AND A.APPROVAL_ID = I.APPROVAL_ID
+		                                        AND A.APPROVAL_STATUS_CD IN
+		                                               ('NREQ',
+		                                                'NING',
+		                                                'NAPR',
+		                                                'EAPR',
+		                                                'SR',
+		                                                'SING',
+		                                                'SAPR')                  -- 고정
+		                                        AND A.DEL_YN = 'N'                --고정
+		                                                          ))
+		         GROUP BY CARD_NUM, OWNER_ID
+		       ) B,
+		       
+		       ( SELECT COUNT (C.CARD_NUM) AS COMMUSER,
+		                 C.CARD_NUM AS cardNo,
+		                 E.USER_ID AS ownUserId
+		            FROM CARD_AQ_TMP C,
+		                 EAC_CARD E,
+		                 EAC_CARD_AQ_MGMT AQM,
+		                 V_SYS_USER U,
+		                 EAC_CARD_MGMT CM
+		           WHERE     1 = 1
+		                 AND C.CARD_NUM = AQM.CARD_NUM(+)
+		                 AND C.AUTH_DATE = AQM.AUTH_DATE(+)
+		                 AND C.AUTH_NUM = AQM.AUTH_NUM(+)
+		                 AND C.GEORAE_STAT = AQM.GEORAE_STAT(+)
+		                 AND C.REQUEST_AMOUNT = AQM.REQUEST_AMOUNT(+)
+		                 AND C.GEORAE_COLL = AQM.GEORAE_COLL(+)
+		                 AND E.COMPANY_CD(+) = #{companyCd}
+		                 AND E.DEL_YN(+) = 'N'
+		                 AND E.CARD_NO(+) = C.CARD_NUM
+		                 AND U.COMPANY_CD(+) = #{companyCd}
+		                 AND AQM.ACT_USER_ID = U.USER_ID(+)
+		                 AND (   AQM.CARD_USING_TP_CD IS NULL
+		                      OR AQM.CARD_USING_TP_CD = '1')
+		                 AND E.COMPANY_CD = CM.COMPANY_CD
+		                 AND E.CARD_NO = CM.CARD_NO
+		                 AND AQM.ACT_USER_ID IS NOT NULL        -- 검색조건 : 실사용자 지정건만 조회
+		        GROUP BY C.CARD_NUM, E.USER_ID
+		      ) C,
+		      (
+		      	SELECT COM_CD_GRP_ID
+		      		 , COM_CD
+		      		 , COM_CD_NM
+		      	  FROM SYS_COM_CD
+		      	 WHERE COMPANY_CD = #{companyCd}
+		      	   AND COM_CD_GRP_ID IN ('CARD_OWN_CD')
+		      ) D		      
+		 WHERE 1 = 1
+		   AND A.COMPANY_CD		= #{companyCd}
+		   AND A.USER_ID 		= #{userId}
+		   <if test="cardNo!=null and cardNo!='all'">
+		   AND A.CARD_NO 		LIKE '%' || #{cardNo} || '%'
+		   </if>
+		   <if test="cardStCd!=null and cardStCd!='all'">
+		   AND A.CARD_ST_CD		= #{cardStCd}
+		   </if>
+		   AND A.CARD_NO 		= B.CARD_NUM(+)
+		   AND A.CARD_NO 		= C.CARDNO(+)
+		   AND A.CARD_OWN_CD	= D.COM_CD(+)
+		 ORDER BY A.CARD_OWN_CD, A.CARD_ST_CD
+	</select>
+	
+	<select id="countIndividualCard" resultType="long" parameterType="individualCardVo">
+		 SELECT COUNT(*)		 		
+		 FROM EAC_CARD A,
+		       (  SELECT COUNT (CARD_NUM) AS NREQ_USER, CARD_NUM, OWNER_ID
+		            FROM ( -- =================================== -- 2.1 대체자 : 대체자에 내가 지정된 카드 사용 건 -- ===================================
+		                  SELECT '21' AS APP_TYPE,
+		                         C.AUTH_DATE,
+		                         C.MERC_NAME,
+		                         C.AMT_AMOUNT,
+		                         C.VAT_AMOUNT,
+		                         C.REQUEST_AMOUNT,
+		                         C.CARD_NUM,
+		                         C.AUTH_NUM,
+		                         C.GEORAE_STAT,
+		                         C.GEORAE_COLL,
+		                         E.USER_ID AS OWNER_ID,
+		                         E.USER_ID AS NREQ_USER_ID,
+		                         G.CARD_USING_TP_CD
+		                    FROM CARD_AQ_TMP C,
+		                         EAC_CARD E,
+		                         EAC_CARD_MGMT M,
+		                         EAC_CARD_AQ_MGMT G
+		                   WHERE     1 = 1
+		                         AND C.CARD_NUM = E.CARD_NO
+		                         AND E.COMPANY_CD = #{companyCd}
+		                         AND E.COMPANY_CD = M.COMPANY_CD
+		                         AND E.CARD_NO = M.CARD_NO
+		                         AND C.CARD_NUM = G.CARD_NUM
+		                         AND C.AUTH_DATE = G.AUTH_DATE
+		                         AND C.AUTH_NUM = G.AUTH_NUM
+		                         AND C.GEORAE_STAT = G.GEORAE_STAT
+		                         AND C.REQUEST_AMOUNT = G.REQUEST_AMOUNT
+		                         AND C.GEORAE_COLL = G.GEORAE_COLL
+		                         AND (   G.CARD_USING_TP_CD = '1'
+		                              OR G.CARD_USING_TP_CD IS NULL) -- 검색조건 : 사용용도구분(1:법인용, 2:개인용)
+		                         AND (C.CARD_NUM,
+		                              C.AUTH_DATE,
+		                              C.AUTH_NUM,
+		                              C.GEORAE_STAT,
+		                              C.REQUEST_AMOUNT,
+		                              C.GEORAE_COLL) NOT IN
+		                                (SELECT I.CARD_NUM,
+		                                        I.AUTH_DATE,
+		                                        I.AUTH_NUM,
+		                                        I.GEORAE_STAT,
+		                                        I.REQUEST_AMOUNT,
+		                                        I.GEORAE_COLL
+		                                   FROM EAC_APPROVAL A, EAC_APPROVAL_ITEM I
+		                                  WHERE     1 = 1
+		                                        AND A.COMPANY_CD = #{companyCd}
+		                                        AND A.COMPANY_CD = I.COMPANY_CD
+		                                        AND A.APPROVAL_ID = I.APPROVAL_ID
+		                                        AND A.APPROVAL_STATUS_CD IN
+		                                               ('NREQ',
+		                                                'NING',
+		                                                'NAPR',
+		                                                'EAPR',
+		                                                'SR',
+		                                                'SING',
+		                                                'SAPR')                  -- 고정
+		                                        AND A.DEL_YN = 'N'                --고정
+		                                                          ))
+		         GROUP BY CARD_NUM, OWNER_ID
+		       ) B,
+		       
+		       ( SELECT COUNT (C.CARD_NUM) AS COMMUSER,
+		                 C.CARD_NUM AS cardNo,
+		                 E.USER_ID AS ownUserId
+		            FROM CARD_AQ_TMP C,
+		                 EAC_CARD E,
+		                 EAC_CARD_AQ_MGMT AQM,
+		                 V_SYS_USER U,
+		                 EAC_CARD_MGMT CM
+		           WHERE     1 = 1
+		                 AND C.CARD_NUM = AQM.CARD_NUM(+)
+		                 AND C.AUTH_DATE = AQM.AUTH_DATE(+)
+		                 AND C.AUTH_NUM = AQM.AUTH_NUM(+)
+		                 AND C.GEORAE_STAT = AQM.GEORAE_STAT(+)
+		                 AND C.REQUEST_AMOUNT = AQM.REQUEST_AMOUNT(+)
+		                 AND C.GEORAE_COLL = AQM.GEORAE_COLL(+)
+		                 AND E.COMPANY_CD(+) = #{companyCd}
+		                 AND E.DEL_YN(+) = 'N'
+		                 AND E.CARD_NO(+) = C.CARD_NUM
+		                 AND U.COMPANY_CD(+) = #{companyCd}
+		                 AND AQM.ACT_USER_ID = U.USER_ID(+)
+		                 AND (   AQM.CARD_USING_TP_CD IS NULL
+		                      OR AQM.CARD_USING_TP_CD = '1')
+		                 AND E.COMPANY_CD = CM.COMPANY_CD
+		                 AND E.CARD_NO = CM.CARD_NO
+		                 AND AQM.ACT_USER_ID IS NOT NULL        -- 검색조건 : 실사용자 지정건만 조회
+		        GROUP BY C.CARD_NUM, E.USER_ID
+		      ) C,
+		      (
+		      	SELECT COM_CD_GRP_ID
+		      		 , COM_CD
+		      		 , COM_CD_NM
+		      	  FROM SYS_COM_CD
+		      	 WHERE COMPANY_CD = #{companyCd}
+		      	   AND COM_CD_GRP_ID IN ('CARD_OWN_CD')
+		      ) D		      
+		 WHERE 1 = 1
+		   AND A.COMPANY_CD		= #{companyCd}
+		   AND A.USER_ID 		= #{userId}
+		   <if test="cardNo!=null and cardNo!='all'">
+		   AND A.CARD_NO 		LIKE '%' || #{cardNo} || '%'
+		   </if>
+		   <if test="cardStCd!=null and cardStCd!='all'">
+		   AND A.CARD_ST_CD		= #{cardStCd}
+		   </if>
+		   AND A.CARD_NO 		= B.CARD_NUM(+)
+		   AND A.CARD_NO 		= C.CARDNO(+)
+		   AND A.CARD_OWN_CD	= D.COM_CD(+)
+		 ORDER BY A.CARD_OWN_CD, A.CARD_ST_CD
+	</select>
+</mapper>

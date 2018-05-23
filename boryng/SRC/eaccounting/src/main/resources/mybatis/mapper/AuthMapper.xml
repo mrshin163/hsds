@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="AuthMapper">
+	<resultMap type="java.util.HashMap" id="userAuthResultMap">
+		<id property="userId" column="USER_ID"/>
+		<result property="userName" column="USER_NM"/>
+		<result property="titleAliasName" column="TITLE_ALIAS_NM"/>
+		<result property="titleName" column="TITLE_NM"/>
+		<result property="deptName" column="DEPT_NM"/>
+		<result property="authId" column="AUTH_ID"/>
+		<result property="authName" column="AUTH_NM"/>
+	</resultMap>
+
+	<select id="selectAuthList" parameterType="authVo" resultType="authVo">
+		SELECT
+			/** [AuthMapper.selectAuthList] [권한 리스트 조회] */
+			AUTH_ID				AS authId,
+			AUTH_NM				AS authName,
+			DESCRIPTION			AS description
+				FROM SYS_AUTH
+					WHERE 1 = 1
+						AND COMPANY_CD = #{companyCode}
+						AND USE_YN = 'Y'
+						AND DEL_YN = 'N'
+	</select>
+
+	<select id="selectAuth" parameterType="authVo" resultType="authVo">
+		SELECT
+			/** [AuthMapper.selectAuth] [권한 조회] */
+			AUTH_ID				AS authId,
+			AUTH_NM				AS authName,
+			DESCRIPTION			AS description
+				FROM SYS_AUTH
+					WHERE 1 = 1
+						AND COMPANY_CD = #{companyCode}
+						AND USE_YN = 'Y'
+						AND DEL_YN = 'N'
+						AND AUTH_ID = #{authId}
+	</select>
+
+	<select id="validAuthId" parameterType="authVo" resultType="java.lang.Integer">
+		SELECT
+			/** [AuthMapper.validAuthId] [AUTH_ID 중복 조회] */
+			COUNT(1)
+				FROM SYS_AUTH
+					WHERE 1 = 1
+						AND COMPANY_CD = #{companyCode}
+						AND USE_YN = 'Y'
+						AND DEL_YN = 'N'
+						AND AUTH_ID = #{authId}
+	</select>
+
+	<insert id="insertAuth" parameterType="authVo">
+		INSERT INTO
+			SYS_AUTH
+			/** [AuthMapper.insertAuth] [권한 등록] */
+				(COMPANY_CD, AUTH_ID, AUTH_NM, DESCRIPTION, REG_USER_ID)
+					VALUES
+					(#{companyCode}, #{authId}, #{authName}, #{description}, #{regUserId})
+	</insert>
+
+	<update id="updateAuth" parameterType="authVo">
+		UPDATE
+			/** [AuthMapper.updateAuth] [권한 수정] */
+			SYS_AUTH
+				SET
+					COMPANY_CD = #{companyCode},
+					AUTH_NM = #{authName},
+					DESCRIPTION = #{description},
+					UPD_DTTM = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'),
+					UPD_USER_ID = #{updtUserId}
+						WHERE 1 = 1
+							AND COMPANY_CD = #{companyCode}
+							AND USE_YN = 'Y'
+							AND DEL_YN = 'N'
+							AND AUTH_ID = #{authId}
+	</update>
+
+	<select id="selectUserAuthList" parameterType="userAuthVo" resultType="userAuthVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT
+				/** [AuthMapper.selectUserAuthList] [사용자 권한 목록 조회] */
+				B.USER_ID																								AS userId,
+				B.USER_NM																								AS userNm,
+				B.TITLE_NM																								AS titleNm,
+				B.DUTY_NM																								AS dutyNm,
+				B.DEPT_NM																								AS deptNm,
+				(SELECT AUTH_NM FROM SYS_AUTH WHERE 1 = 1 AND USE_YN = 'Y' AND DEL_YN = 'N' AND AUTH_ID = A.AUTH_ID)	AS authNm
+					FROM
+						SYS_USER_AUTH A,
+						V_SYS_USER B
+							WHERE 1 = 1
+								AND A.COMPANY_CD = B.COMPANY_CD
+								AND A.USER_ID = B.USER_ID
+								AND A.COMPANY_CD = #{companyCode}
+								<if test="authId != null and authId != 'all'">
+									AND A.AUTH_ID = #{authId}
+								</if>
+									ORDER BY B.USER_NM ASC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+
+	<select id="userAuthCount" parameterType="userAuthVo" resultType="java.lang.Integer">
+		SELECT
+			/** [AuthMapper.userAuthCount] [사용자 권한 목록 카운트] */
+			COUNT(1)
+				FROM
+					SYS_USER_AUTH A,
+					V_SYS_USER B
+						WHERE 1 = 1
+							AND A.COMPANY_CD = B.COMPANY_CD
+							AND A.USER_ID = B.USER_ID
+							AND A.COMPANY_CD = #{companyCode}
+							<if test="authId != null and authId != 'all'">
+								AND A.AUTH_ID = #{authId}
+							</if>
+	</select>
+
+	<insert id="insertUserAuth" parameterType="userAuthVo">
+		INSERT INTO
+			SYS_USER_AUTH
+			/** [AuthMapper.insertUserAuth] [사용자 권한 등록] */
+				(COMPANY_CD, USER_ID, AUTH_ID, REG_DTTM, REG_USER_ID)
+					VALUES
+					(#{companyCode}, #{userId}, #{authId}, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS'), #{regUserId})
+	</insert>
+
+	<delete id="deleteUserAuth" parameterType="userAuthVo">
+		DELETE
+			/** [AuthMapper.deleteUserAuth] [사용자 권한 삭제] */
+			FROM
+				SYS_USER_AUTH
+					WHERE 1 = 1
+						AND COMPANY_CD = #{companyCode}
+						AND USER_ID = #{userId}
+						AND AUTH_ID = #{authId}
+	</delete>
+
+	<resultMap type="java.util.HashMap" id="menuAuthResultMap">
+		<id property="menuId" column="MENU_ID"/>
+		<result property="fullMenuName" column="FULL_MENU_NM"/>
+		<result property="menuName" column="MENU_NM"/>
+		<result property="authId" column="AUTH_ID"/>
+		<result property="authName" column="AUTH_NM"/>
+	</resultMap>
+
+	<!-- 메뉴 권한 리스트 -->
+	<select id="selectMenuAuthList" parameterType="menuAuthVo" resultMap="menuAuthResultMap">
+		SELECT 
+			   MENU_ID
+			 , AUTH_ID
+		  FROM SYS_MENU_AUTH
+		 WHERE 1=1
+		   AND COMPANY_CD	=	#{companyCode}
+		   AND AUTH_ID 		=	#{authId}
+	</select>
+<!-- 	<select id="selectMenuAuthList" parameterType="menuAuthVo" resultMap="menuAuthResultMap">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT
+		         'HOME'||SYS_CONNECT_BY_PATH(M.MENU_NM,' > ') as FULL_MENU_NM
+		        ,M.MENU_ID         
+		        ,M.MENU_NM
+		        ,A.AUTH_ID         
+		        ,S.AUTH_NM
+		  FROM SYS_MENU M, SYS_MENU_AUTH A, SYS_AUTH S
+		 WHERE 1=1
+		   AND M.USE_YN = 'Y'
+		   AND M.DEL_YN = 'N'
+		   AND M.COMPANY_CD = A.COMPANY_CD
+		   AND M.MENU_ID = A.MENU_ID
+		   AND S.USE_YN = 'Y'
+		   AND S.DEL_YN = 'N'
+		   AND S.COMPANY_CD (+) = A.COMPANY_CD
+		   AND S.AUTH_ID (+) = A.AUTH_ID
+		<if test='authId != null and authId != "all"'>
+			AND A.AUTH_ID = #{authId}
+		</if>
+		 START WITH M.UP_MENU_ID='0'
+		 CONNECT BY PRIOR M.MENU_ID = M.UP_MENU_ID
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select> -->
+	
+	<!-- 메뉴 권한 -->
+	<select id="selectMenuAuth" parameterType="menuAuthVo" resultType="menuAuthVo">
+		SELECT
+			   MENU_ID		AS	menuId
+			 , AUTH_ID		AS	authId
+		  FROM SYS_MENU_AUTH
+		 WHERE 1=1
+		   AND COMPANY_CD 	=	#{companyCode}
+		   AND MENU_ID		=	#{menuId}
+		   AND AUTH_ID		=	#{authId}
+	</select>
+	
+	<!-- 메뉴 권한 -->
+	<insert id="insertMenuAuth" parameterType="menuAuthVo">
+		INSERT 
+		  INTO SYS_MENU_AUTH 
+		     (
+			   COMPANY_CD
+			 , MENU_ID
+			 , AUTH_ID
+			 , REG_DTTM
+			 , REG_USER_ID) 
+	  VALUES ( #{companyCode}		/* COMPANY_CD */
+	  		 , #{menuId}		/* MENU_ID */
+	  		 , #{authId}		/* AUTH_ID */
+	  		 , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')		/* REG_DTTM */
+	  		 , #{regUserId}		/* REG_USER_ID */ )
+	</insert>
+	
+	<!-- 메뉴 권한 -->
+	<update id="deleteMenuAuth" parameterType="menuAuthVo">
+		DELETE
+		  FROM SYS_MENU_AUTH
+		 WHERE 1=1
+		   AND COMPANY_CD 	=	#{companyCode}
+		   AND MENU_ID		=	#{menuId}
+		   AND AUTH_ID		=	#{authId}
+	</update>
+	
+</mapper>

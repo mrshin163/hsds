@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="ApprovalLine">
+
+	<!-- 목록 조회 조건  -->
+	<sql id="selectPolicyCnd">
+		 WHERE AP.COMPANY_CD		= 	#{companyCd}
+		   AND AP.DEL_YN			=	'N'
+		   AND AP.COMPANY_CD		= 	D.COMPANY_CD (+)
+		   AND AP.DEPT_CD			=	D.DEPT_CD (+)
+		 <if test='accountCd != null and accountCd != "all"'>
+		   AND AP.ACCOUNT_CD 		=	#{accountCd}
+		 </if>
+		 <if test='policyNm != null and policyNm != "all"'>
+		   AND AP.POLICY_NM 	LIKE '%' || #{policyNm} || '%'
+		 </if>
+		 <if test='deptNm != null and deptNm != "all"'>
+		   AND D.DEPT_NM 		LIKE '%' || #{deptNm} || '%'
+		 </if>
+	</sql>
+	
+	<select id="selectPolicy" parameterType="approvalPolicyVo" resultType="approvalPolicyVo" >
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+		SELECT AP.COMPANY_CD		AS	companyCd
+			 , AP.POLICY_ID			AS	policyId
+			 , AP.POLICY_NM			AS	policyNm
+			 , AP.ACCOUNT_CD		AS	accountCd
+			 , FN_GET_COM_CD (AP.COMPANY_CD, 'ACCOUNT_CD', AP.ACCOUNT_CD)		AS	accountNm
+			 , AP.MIN_AMOUNT		AS	minAmount
+			 , AP.MAX_AMOUNT		AS	maxAmount
+			 , AP.USE_YN			AS	useYn
+			 , AP.DESCRIPTION		AS	description
+			 , AP.DEPT_CD			AS	deptCd
+			 , D.DEPT_NM			AS	deptNm
+		  FROM SYS_APPROVAL_POLICY AP, SYS_DEPT D
+		 <include refid="selectPolicyCnd"/>
+		 ORDER BY AP.POLICY_ID
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<select id="countSelectPolicy" parameterType="approvalPolicyVo" resultType="long" >
+		SELECT COUNT(*)
+		  FROM SYS_APPROVAL_POLICY AP, SYS_DEPT D
+		<include refid="selectPolicyCnd"/>
+	</select>
+	
+	<select id="selectPolicyOneCount" parameterType="approvalPolicyVo" resultType="long" >
+		SELECT count(*)
+		  FROM SYS_APPROVAL_POLICY
+		 WHERE COMPANY_CD		= 	#{companyCd}
+		   AND POLICY_ID		=	#{policyId}
+	</select>
+	
+	<select id="selectPolicyOne" parameterType="approvalPolicyVo" resultType="approvalPolicyVo" >
+		SELECT AP.COMPANY_CD		AS	companyCd
+			 , AP.POLICY_ID			AS	policyId
+			 , AP.POLICY_NM			AS	policyNm
+			 , AP.ACCOUNT_CD		AS	accountCd
+			 , FN_GET_COM_CD (AP.COMPANY_CD, 'ACCOUNT_CD', AP.ACCOUNT_CD)		AS	accountNm
+			 , AP.MIN_AMOUNT		AS	minAmount
+			 , AP.MAX_AMOUNT		AS	maxAmount
+			 , AP.USE_YN			AS	useYn
+			 , AP.DESCRIPTION		AS	description
+			 , AP.DEPT_CD			AS	deptCd
+			 , D.DEPT_NM			AS	deptNm
+		  FROM SYS_APPROVAL_POLICY AP, SYS_DEPT D
+		 WHERE AP.COMPANY_CD	= 	#{companyCd}
+		   AND AP.POLICY_ID		=	#{policyId}
+		   AND AP.COMPANY_CD	= 	D.COMPANY_CD (+)
+		   AND AP.DEPT_CD		=	D.DEPT_CD (+)
+	</select>
+	
+	
+	
+	
+	<select id="selectLine" parameterType="approvalPolicyDtlVo" resultType="approvalPolicyDtlVo">
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+		SELECT AP.COMPANY_CD				AS	companyCd
+			 , AP.POLICY_ID					AS	policyId
+			 , AP.SEQ						AS	seq
+			 , AP.APPROVAL_LINE_DEF_CD		AS	approvalLineCd
+			 , AP.APPROVAL_LINE_DEF_VAL		AS	approvalLineVal
+			 , U.USER_NM					AS  approvalLineValNm
+			 , U.DEPT_NM					AS  deptNm
+			 , U.TITLE_NM					AS  titleNm
+		  FROM SYS_APPROVAL_POLICY_DTL AP, V_SYS_USER U
+		 WHERE AP.COMPANY_CD			= 	#{companyCd}
+		   AND AP.POLICY_ID				=	#{policyId}	
+		   AND AP.COMPANY_CD			= 	U.COMPANY_CD (+)
+		   AND AP.APPROVAL_LINE_DEF_VAL	=	U.USER_ID (+)	  
+		 ORDER BY AP.SEQ
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>
+	</select>
+	
+	<select id="countSelectLine" parameterType="approvalPolicyDtlVo" resultType="long">
+		SELECT COUNT(*)
+		  FROM SYS_APPROVAL_POLICY_DTL
+		 WHERE COMPANY_CD		= 	#{companyCd}
+		   AND POLICY_ID		=	#{policyId}
+	</select>
+	
+	<select id="selectLineOne" parameterType="approvalPolicyDtlVo" resultType="approvalPolicyDtlVo">
+		SELECT AP.COMPANY_CD				AS	companyCd
+			 , AP.POLICY_ID					AS	policyId
+			 , AP.SEQ						AS	seq
+			 , AP.APPROVAL_LINE_DEF_CD		AS	approvalLineCd
+			 , AP.APPROVAL_LINE_DEF_VAL		AS	approvalLineVal
+			 , U.USER_NM					AS  approvalLineValNm
+			 , U.DEPT_NM					AS  deptNm
+			 , U.TITLE_NM					AS  titleNm
+		  FROM SYS_APPROVAL_POLICY_DTL AP, V_SYS_USER U
+		 WHERE AP.COMPANY_CD			= 	#{companyCd}
+		   AND AP.POLICY_ID				=	#{policyId}	
+		   AND AP.SEQ					=	RPAD(#{seq}, 18, ' ')
+		   AND AP.COMPANY_CD			= 	U.COMPANY_CD (+)
+		   AND AP.APPROVAL_LINE_DEF_VAL	=	U.USER_ID (+)	  
+	</select>
+
+
+
+
+	<insert id="insertPolicy" parameterType="approvalPolicyVo">
+		INSERT 
+		  INTO SYS_APPROVAL_POLICY 
+			 ( COMPANY_CD
+			 , POLICY_ID
+			 , POLICY_NM
+			 , ACCOUNT_CD
+			 , MIN_AMOUNT
+			 , MAX_AMOUNT
+			 , DESCRIPTION
+			 , USE_YN
+			 , REG_DTTM
+			 , REG_USER_ID
+			 , DEPT_CD)
+		VALUES 
+			 ( #{companyCd}		/*COMPANY_CD*/
+			 , #{policyId}		/*POLICY_ID*/
+			 , #{policyNm}		/*POLICY_NM*/
+			 , #{accountCd}		/*ACCOUNT_CD*/
+			 , #{minAmount}		/*MIN_AMOUNT*/
+			 , #{maxAmount}		/*MAX_AMOUNT*/
+			 , #{description}	/*DESCRIPTION*/
+			 , #{useYn}			/*USE_YN*/
+			 , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')	/*REG_DTTM*/
+			 , #{regUserId}		/*REG_USER_ID*/
+			 , #{deptCd}		/*DEPT_CD*/ )	
+	</insert>
+	
+	<insert id="insertLine" parameterType="approvalPolicyDtlVo">
+		INSERT 
+		  INTO SYS_APPROVAL_POLICY_DTL 
+		     ( COMPANY_CD
+			 , POLICY_ID
+			 , SEQ
+			 , APPROVAL_LINE_DEF_CD
+			 , APPROVAL_LINE_DEF_VAL
+			 , REG_DTTM
+			 , REG_USER_ID)
+		VALUES 
+			 ( #{companyCd}								/*COMPANY_CD*/
+			 , #{policyId}								/*POLICY_ID*/
+			 , #{seq}									/*SEQ*/
+			 , #{approvalLineCd}						/*APPROVAL_LINE_DEF_CD*/
+			 , #{approvalLineVal, jdbcType=VARCHAR}		/*APPROVAL_LINE_DEF_VAL*/
+			 , TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')		/*REG_DTTM*/
+			 , #{regUserId}								/*REG_USER_ID*/ )
+	</insert>
+	
+	
+	
+	
+	<update id="updatePolicy" parameterType="approvalPolicyVo">
+		UPDATE SYS_APPROVAL_POLICY
+		   SET POLICY_NM	= #{policyNm}
+			 , ACCOUNT_CD	= #{accountCd}
+			 , MIN_AMOUNT	= #{minAmount}
+			 , MAX_AMOUNT	= #{maxAmount}
+			 , DESCRIPTION	= #{description}
+			 , USE_YN		= #{useYn}
+			 , UPD_DTTM		= TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			 , UPD_USER_ID	= #{updUserId}
+			 , DEPT_CD		= #{deptCd}
+		 WHERE COMPANY_CD	= #{companyCd}
+		   AND POLICY_ID	= #{policyId}
+	</update>
+	
+	<update id="updateLine" parameterType="approvalPolicyDtlVo">
+		UPDATE SYS_APPROVAL_POLICY_DTL
+		   SET APPROVAL_LINE_DEF_CD 	= #{approvalLineCd}
+		     , APPROVAL_LINE_DEF_VAL 	= #{approvalLineVal}
+		     , UPD_DTTM 				= TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID 				= #{updUserId}
+		 WHERE COMPANY_CD 				= #{companyCd}
+		   AND POLICY_ID 				= #{policyId}
+		   AND SEQ 						= RPAD(#{seq}, 18, ' ')
+	</update>
+	
+
+	
+	<update id="deletePolicy" parameterType="approvalPolicyVo">
+		UPDATE SYS_APPROVAL_POLICY
+		   SET DEL_YN		= #{delYn}
+		   	 , UPD_DTTM 	= TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID 	= #{updUserId}
+		 WHERE COMPANY_CD	= #{companyCd}
+		   AND POLICY_ID	= #{policyId}
+	</update>	
+	
+	<update id="deleteLine" parameterType="approvalPolicyDtlVo">
+		DELETE 
+		  FROM SYS_APPROVAL_POLICY_DTL
+		 WHERE COMPANY_CD 	= #{companyCd}
+		   AND POLICY_ID 	= #{policyId}
+		   AND SEQ 			= RPAD(#{seq}, 18, ' ')
+	</update>
+
+	
+</mapper>

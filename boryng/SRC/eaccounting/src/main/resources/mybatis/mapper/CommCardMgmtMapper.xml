@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CommCardMgmtMapper">
+	
+	<sql id="cardAPListCnd">
+		<where>
+			1=1
+		   AND C.CARD_NUM       = AQM.CARD_NUM       (+)
+		   AND C.AUTH_DATE      = AQM.AUTH_DATE      (+)
+		   AND C.AUTH_NUM       = AQM.AUTH_NUM       (+)
+		   AND C.GEORAE_STAT    = AQM.GEORAE_STAT    (+)
+		   AND C.REQUEST_AMOUNT = AQM.REQUEST_AMOUNT (+)
+		   AND C.GEORAE_COLL    = AQM.GEORAE_COLL    (+)
+		   AND E.COMPANY_CD(+)  = #{companyCd}
+		   AND E.DEL_YN(+)      = 'N'
+		   AND E.CARD_NO(+)     = C.CARD_NUM
+		   AND U.COMPANY_CD(+)  = #{companyCd}
+		   AND AQM.ACT_USER_ID  = U.USER_ID (+)
+		   AND (AQM.CARD_USING_TP_CD IS NULL OR AQM.CARD_USING_TP_CD = '1')
+		   AND E.COMPANY_CD 	= CM.COMPANY_CD
+		   AND E.CARD_NO		= CM.CARD_NO
+		   AND CM.COM_CARD_MGR_ID	= #{cardMgrId}
+	   <if test='searchType == "1"'> <!-- 실사용자 지정건만 조회 -->
+		   AND AQM.ACT_USER_ID IS NOT NULL -- 검색조건 : 실사용자 지정건만 조회
+		   <if test='actUser != null and actUser != "all"'>
+			   AND (U.USER_NM LIKE #{actUser}||'%' OR U.USER_ID = #{actUser})
+		   </if>
+	   </if>
+	   <if test='searchType == "2"'> <!-- 실사용자 미지정건만 조회 -->
+		   AND AQM.ACT_USER_ID IS NULL     -- 검색조건 : 실사용자 미지정건만 조회
+	   </if>
+	   <if test='authDate != null and authDate != "all"'>
+		   AND C.AUTH_DATE LIKE #{authDate}||'%' -- 검색조건 : 사용년/월
+	   </if>
+<!-- 	   <if test='ownUserId != null and ownUserId != "all"'>
+		   AND E.USER_ID(+) = #{ownUserId} - 검색조건 : 카드오너사용자ID
+	   </if> -->
+		</where>	
+	</sql>
+	
+	<!-- 공통 코드 목록 조회 -->
+	<select id="getCardAQList" parameterType="java.util.Map" resultType="commCardMgmtVo">
+		-- ==================================
+		-- 공용카드 승인내역  목록 조회(공용카드 결재상신요청)
+		-- ==================================
+		<if test='pagingYn == "Y"'><include refid="common.prefixOra"/></if>
+			SELECT C.AUTH_DATE			AS authDate
+			     , C.MERC_NAME			AS mercName
+			     , C.AMT_AMOUNT			AS amtAmount
+			     , C.VAT_AMOUNT			AS vatAmount
+			     , C.REQUEST_AMOUNT		AS requestAmount
+			     , C.GEORAE_STAT		AS georaeStat
+			     , C.GEORAE_COLL		AS georaeColl
+			     , C.CARD_NUM			AS cardNo
+			     , C.AUTH_NUM			AS authNum
+			     , E.USER_ID 			AS ownUserId
+			     , FN_GET_USER_INFO(#{companyCd}, E.USER_ID, 'USER_NM') AS ownUserNm
+			     , AQM.ACT_USER_ID		AS actUserId
+			     , U.USER_NM 			AS actUserNm		     
+			  FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_AQ_MGMT AQM, V_SYS_USER U, EAC_CARD_MGMT CM
+			<include refid="cardAPListCnd"/>
+			ORDER BY C.AUTH_DATE DESC
+		<if test='pagingYn == "Y"'><include refid="common.suffixOra"/></if>	
+	</select>
+	
+	<!-- 공통 코드 COUNT 조회 -->
+	<select id="getCardAQListCount" parameterType="java.util.Map" resultType="long">
+		-- ==================================
+		-- 공용카드 승인내역  목록 카운트
+		-- ==================================
+		SELECT COUNT(*)	     
+		  FROM CARD_AQ_TMP C, EAC_CARD E, EAC_CARD_AQ_MGMT AQM, V_SYS_USER U, EAC_CARD_MGMT CM
+		<include refid="cardAPListCnd"/>
+	</select>
+	
+	<!--  -->
+	<select id="getCardApprovalCount" parameterType="java.util.Map" resultType="long">
+		-- ==================================
+		-- 현재 해당사용자로 결재진행중인건이 있는지 검색
+		-- ==================================
+		SELECT COUNT(1)
+          FROM EAC_APPROVAL EA,
+               EAC_APPROVAL_ITEM EAI
+         WHERE 1=1
+           AND EA.COMPANY_CD    	= EAI.COMPANY_CD
+           AND EA.APPROVAL_ID   	= EAI.APPROVAL_ID
+           AND EA.APPROVAL_STATUS_CD IN ('SR', 'T', 'NING' , 'NREQ')
+           AND EA.COMPANY_CD    	= #{companyCd}
+           AND EA.RQ_USER_ID    	= #{actUserId}
+           AND EAI.AUTH_NUM     	= #{authNum}
+           AND EAI.CARD_NUM 		= #{cardNo}
+           AND EAI.AUTH_DATE		= #{authDate}
+           AND EAI.GEORAE_STAT		= #{georaeStat}
+           AND EAI.REQUEST_AMOUNT	= ${requestAmount}
+           AND EAI.GEORAE_COLL		= #{georaeColl}
+
+
+	
+	</select>
+
+	<update id="updateActUser" parameterType="java.util.Map">
+		-- ==================================
+		-- 공용카드 승인내역  실사용자 지정
+		-- ==================================
+		UPDATE EAC_CARD_AQ_MGMT
+		   SET ACT_USER_ID = #{actUserId} 		 -- 파라메터 : 실사용자ID
+		     , UPD_DTTM    = TO_CHAR(SYSDATE, 'YYYYMMDDHH24MISS')
+		     , UPD_USER_ID = #{updUserId} 		 -- 로그인한 사용자 : 세션사용자ID
+		 WHERE CARD_NUM    = #{cardNo} 			 -- 카드번호
+		   AND AUTH_DATE   = #{authDate} 		 -- 거래일자(승인일자)
+		   AND AUTH_NUM    = #{authNum} 		 -- 승인번호
+		   AND GEORAE_STAT = #{georaeStat} 		 -- 거래상태
+		   AND REQUEST_AMOUNT = ${requestAmount} -- 원화거래금액합계
+		   AND GEORAE_COLL = #{georaeColl} 		 -- 매입추심번호
+	</update>
+</mapper>
